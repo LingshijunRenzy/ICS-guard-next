@@ -1,0 +1,1641 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ICS-Guard Next — Backend ↔ Controller API",
+    "description": "管控 Backend 与 SDN Controller 之间的控制面 REST 接口规范，供 Controller 开发同事参考。\n\n**范围**：本文档仅定义 App-Backend → SDN Controller 的接口。Web UI ↔ App-Backend 的前端接口不在本文档范围内（见 api-contracts.md 第二章）。\n\n**约定**：\n- 所有响应统一采用 `{ code, msg, data }` 结构\n- Controller 端接口需在 Header 中携带 `Authorization: Bearer <token>`\n- 时间戳使用 ISO 8601 格式\n- Rule 结构仅包含执行面字段，不含 `created_by`/`updated_by`/`created_at`/`updated_at` 等元数据（元数据由 App-Backend 在 PostgreSQL 层维护，对 Controller 不可见）",
+    "version": "1.0.0",
+    "contact": { "name": "ICS-Guard Team" }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000/api/v1",
+      "description": "SDN Controller 开发环境"
+    }
+  ],
+  "tags": [
+    { "name": "Flow", "description": "流表管理" },
+    { "name": "Rule", "description": "规则管理（策略 CRUD、apply/revoke）。Controller 侧不含时间/作者元数据。" },
+    { "name": "Topology", "description": "网络拓扑" },
+    { "name": "Node", "description": "节点状态与操控" },
+    { "name": "Link", "description": "链路状态与操控" },
+    { "name": "Switch", "description": "交换机管理（datapath 详情、流表查询、端口统计）" },
+    { "name": "Meter", "description": "Meter 表管理（限速控制）" },
+    { "name": "Health", "description": "Controller 健康检查（存活/就绪探测，无需认证）" }
+  ],
+  "paths": {
+    "/flows/block": {
+      "post": {
+        "tags": ["Flow"],
+        "summary": "下发阻断流表",
+        "description": "根据告警或人工决策向交换机下发 OpenFlow 阻断规则。",
+        "operationId": "createBlockFlow",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BlockFlowRequest" },
+              "example": {
+                "trace_id": "req-98765-abcd",
+                "rule_type": "DROP",
+                "priority": 100,
+                "match": {
+                  "src_ip": "192.168.1.100",
+                  "dst_ip": "192.168.1.20",
+                  "protocol": "TCP",
+                  "dst_port": 502
+                },
+                "duration_seconds": 3600
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "流表下发成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FlowResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/flows/block/{flow_id}": {
+      "delete": {
+        "tags": ["Flow"],
+        "summary": "撤销阻断流表",
+        "description": "撤销已下发的阻断流表，恢复通信。",
+        "operationId": "deleteBlockFlow",
+        "parameters": [
+          {
+            "name": "flow_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "流表规则 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "撤销成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FlowRevokeResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules": {
+      "get": {
+        "tags": ["Rule"],
+        "summary": "列出所有规则",
+        "description": "获取 Controller 中的规则列表。注意：返回的 Rule 不含时间/作者元数据。",
+        "operationId": "listRules",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["flow", "node", "connection"] },
+            "description": "规则类型"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["enabled", "disabled", "pending"] },
+            "description": "规则状态"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "规则列表",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RuleListResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Rule"],
+        "summary": "创建规则",
+        "description": "在 Controller 中创建一条新的安全规则。App-Backend 调用前已剥离 created_by 等元数据字段。conditions 分为 network（必填）和 protocol_match（可选，按 type 区分协议）。",
+        "operationId": "createRule",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateRuleRequest" },
+              "example": {
+                "rule": {
+                  "name": "Block-Modbus-Scanner",
+                  "description": "阻断对 PLC 502 端口的扫描探测",
+                  "type": "flow",
+                  "priority": 200,
+                  "conditions": {
+                    "network": {
+                      "src_ip": "192.168.10.0/24",
+                      "dst_port": 502,
+                      "transport": "TCP"
+                    },
+                    "protocol_match": {
+                      "type": "modbus",
+                      "modbus": {
+                        "func_codes": [1, 3, 15, 16]
+                      }
+                    }
+                  },
+                  "action": "DROP",
+                  "duration_seconds": 7200,
+                  "status": "enabled"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RuleMutationResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules/{rule_id}": {
+      "get": {
+        "tags": ["Rule"],
+        "summary": "获取规则详情",
+        "description": "获取单条规则在 Controller 中的完整信息（执行面字段，不含时间/作者元数据）。",
+        "operationId": "getRule",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "规则 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "规则详情",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RuleDetailResponse" },
+                "example": {
+                  "code": 200,
+                  "msg": "success",
+                  "data": {
+                    "rule": {
+                      "rule_id": "rule-uuid-0001",
+                      "name": "Block-Modbus-Scanner",
+                      "description": "阻断对 PLC 502 端口的扫描探测",
+                      "type": "flow",
+                      "priority": 200,
+                      "conditions": {
+                        "network": {
+                          "src_ip": "192.168.10.0/24",
+                          "dst_port": 502,
+                          "transport": "TCP"
+                        },
+                        "protocol_match": {
+                          "type": "modbus",
+                          "modbus": {
+                            "func_codes": [1, 3, 15, 16]
+                          }
+                        }
+                      },
+                      "action": "DROP",
+                      "duration_seconds": 7200,
+                      "status": "enabled"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Rule"],
+        "summary": "更新规则",
+        "description": "更新 Controller 中已存在的规则（部分字段可更新）。App-Backend 负责在 PostgreSQL 中维护 updated_by/updated_at。",
+        "operationId": "updateRule",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateRuleRequest" },
+              "example": {
+                "rule": {
+                  "priority": 150,
+                  "duration_seconds": 3600,
+                  "status": "disabled",
+                  "conditions": {
+                    "protocol_match": {
+                      "type": "modbus",
+                      "modbus": {
+                        "func_codes": [3, 16]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RuleMutationResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Rule"],
+        "summary": "删除规则",
+        "description": "从 Controller 中删除一条规则。",
+        "operationId": "deleteRule",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RuleMutationResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules/{rule_id}/apply": {
+      "post": {
+        "tags": ["Rule"],
+        "summary": "应用规则到目标",
+        "description": "将已创建的规则部署到指定节点、链路或流，由 Controller 转换为 OpenFlow 流表下发。",
+        "operationId": "applyRule",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RuleTargetRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "应用成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RuleApplyResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules/{rule_id}/revoke": {
+      "post": {
+        "tags": ["Rule"],
+        "summary": "撤销已应用规则",
+        "description": "撤销规则在指定目标上的应用，Controller 移除对应流表。",
+        "operationId": "revokeRule",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RuleTargetRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "撤销成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RuleApplyResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/topology": {
+      "get": {
+        "tags": ["Topology"],
+        "summary": "获取完整网络拓扑",
+        "description": "获取 Controller 当前感知的完整网络拓扑（所有节点与链路）。",
+        "operationId": "getTopology",
+        "responses": {
+          "200": {
+            "description": "拓扑数据",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TopologyResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/nodes/{node_id}/status": {
+      "get": {
+        "tags": ["Node"],
+        "summary": "获取节点状态",
+        "description": "获取指定节点的实时运行状态与指标。",
+        "operationId": "getNodeStatus",
+        "parameters": [
+          {
+            "name": "node_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "节点状态",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NodeStatusResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/nodes/stats": {
+      "get": {
+        "tags": ["Node"],
+        "summary": "获取节点性能统计",
+        "description": "按时间范围获取节点的聚合性能数据。",
+        "operationId": "getNodeStats",
+        "parameters": [
+          {
+            "name": "start_time",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" },
+            "description": "开始时间（ISO 8601）"
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" },
+            "description": "结束时间（ISO 8601）"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "节点统计列表",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NodeStatsResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/nodes/{node_id}/start": {
+      "post": {
+        "tags": ["Node"],
+        "summary": "启动节点",
+        "operationId": "startNode",
+        "parameters": [
+          {
+            "name": "node_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ControlResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/nodes/{node_id}/stop": {
+      "post": {
+        "tags": ["Node"],
+        "summary": "停止节点",
+        "operationId": "stopNode",
+        "parameters": [
+          {
+            "name": "node_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ControlResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/nodes/{node_id}/restart": {
+      "post": {
+        "tags": ["Node"],
+        "summary": "重启节点",
+        "operationId": "restartNode",
+        "parameters": [
+          {
+            "name": "node_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ControlResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/links/{link_id}/status": {
+      "get": {
+        "tags": ["Link"],
+        "summary": "获取连接状态",
+        "description": "获取指定链路的实时状态与指标。",
+        "operationId": "getLinkStatus",
+        "parameters": [
+          {
+            "name": "link_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "链路状态",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LinkStatusResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/links/stats": {
+      "get": {
+        "tags": ["Link"],
+        "summary": "获取连接性能统计",
+        "description": "按时间范围获取链路的聚合性能数据。",
+        "operationId": "getLinkStats",
+        "parameters": [
+          {
+            "name": "start_time",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "链路统计列表",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LinkStatsResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/links/{link_id}/enable": {
+      "post": {
+        "tags": ["Link"],
+        "summary": "启用连接",
+        "operationId": "enableLink",
+        "parameters": [
+          {
+            "name": "link_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ControlResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/links/{link_id}/disable": {
+      "post": {
+        "tags": ["Link"],
+        "summary": "禁用连接",
+        "operationId": "disableLink",
+        "parameters": [
+          {
+            "name": "link_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ControlResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/switches": {
+      "get": {
+        "tags": ["Switch"],
+        "summary": "列出所有交换机",
+        "description": "获取 Controller 当前管理的所有交换机/Datapath 列表。",
+        "operationId": "listSwitches",
+        "responses": {
+          "200": {
+            "description": "交换机列表",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SwitchListResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/switches/{dpid}": {
+      "get": {
+        "tags": ["Switch"],
+        "summary": "获取交换机详情",
+        "description": "获取单个交换机的详细信息，包括端口列表和能力集。",
+        "operationId": "getSwitch",
+        "parameters": [
+          {
+            "name": "dpid",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "交换机 Datapath ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "交换机详情",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SwitchDetailResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/switches/{dpid}/flows": {
+      "get": {
+        "tags": ["Switch"],
+        "summary": "查询交换机流表项",
+        "description": "查询指定交换机上当前已下发的 OpenFlow 流表项，用于排查策略是否生效。",
+        "operationId": "getSwitchFlows",
+        "parameters": [
+          {
+            "name": "dpid",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "table_id",
+            "in": "query",
+            "schema": { "type": "integer" },
+            "description": "流表编号过滤"
+          },
+          {
+            "name": "priority_min",
+            "in": "query",
+            "schema": { "type": "integer" },
+            "description": "最低优先级过滤"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "流表项列表",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FlowEntryListResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/switches/{dpid}/ports": {
+      "get": {
+        "tags": ["Switch"],
+        "summary": "查询交换机端口统计",
+        "description": "获取指定交换机的所有端口实时统计信息。",
+        "operationId": "getSwitchPorts",
+        "parameters": [
+          {
+            "name": "dpid",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "端口统计列表",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PortStatsResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meters": {
+      "get": {
+        "tags": ["Meter"],
+        "summary": "列出 Meter 表",
+        "description": "获取 Controller 中的 Meter 表列表，可按交换机过滤。",
+        "operationId": "listMeters",
+        "parameters": [
+          {
+            "name": "dpid",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "按交换机 DPID 过滤"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Meter 列表",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MeterListResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Meter"],
+        "summary": "创建 Meter 表",
+        "description": "在指定交换机上创建 Meter 表，用于限速控制。",
+        "operationId": "createMeter",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateMeterRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MeterMutationResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meters/{meter_id}": {
+      "delete": {
+        "tags": ["Meter"],
+        "summary": "删除 Meter 表",
+        "description": "从交换机上删除指定的 Meter 表。",
+        "operationId": "deleteMeter",
+        "parameters": [
+          {
+            "name": "meter_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MeterMutationResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/flows/{flow_id}/effect": {
+      "get": {
+        "tags": ["Flow"],
+        "summary": "查询流表生效效果",
+        "description": "查询已下发流表的实际命中统计，评估阻断是否生效。",
+        "operationId": "getFlowEffect",
+        "parameters": [
+          {
+            "name": "flow_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "流表效果数据",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FlowEffectResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules/{rule_id}/effect": {
+      "get": {
+        "tags": ["Rule"],
+        "summary": "查询规则生效效果",
+        "description": "汇总规则在所有目标交换机上的整体生效效果，用于评估响应是否达到预期。",
+        "operationId": "getRuleEffect",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "规则效果数据",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RuleEffectResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "存活检查",
+        "description": "返回 Controller 进程是否在运行。无需认证。",
+        "operationId": "healthCheck",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "服务存活",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "就绪检查",
+        "description": "返回 Controller 是否已就绪接收请求。无需认证。",
+        "operationId": "healthReady",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "服务就绪",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthReadyResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Controller 端接口需携带 Bearer Token"
+      }
+    },
+    "schemas": {
+      "FlowMatch": {
+        "type": "object",
+        "description": "流表匹配条件",
+        "properties": {
+          "src_ip": { "type": "string", "example": "192.168.1.100" },
+          "dst_ip": { "type": "string", "example": "192.168.1.20" },
+          "protocol": { "type": "string", "example": "TCP" },
+          "src_port": { "type": "integer", "example": 45321 },
+          "dst_port": { "type": "integer", "example": 502 }
+        }
+      },
+      "BlockFlowRequest": {
+        "type": "object",
+        "required": ["trace_id", "match"],
+        "properties": {
+          "trace_id": { "type": "string", "description": "请求追踪 ID", "example": "req-98765-abcd" },
+          "rule_type": { "type": "string", "enum": ["DROP", "REDIRECT", "THROTTLE"], "default": "DROP" },
+          "priority": { "type": "integer", "default": 100 },
+          "match": { "$ref": "#/components/schemas/FlowMatch" },
+          "duration_seconds": { "type": "integer", "description": "阻断持续时长（秒），0 表示永久", "default": 3600 }
+        }
+      },
+      "FlowResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "msg": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "flow_id": { "type": "string", "example": "flow-rule-001" },
+              "status": { "type": "string", "enum": ["APPLIED", "PENDING", "FAILED"], "example": "APPLIED" },
+              "datapath_id": { "type": "string", "example": "0000000000000001" }
+            }
+          }
+        }
+      },
+      "FlowRevokeResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "msg": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "flow_id": { "type": "string", "example": "flow-rule-001" },
+              "status": { "type": "string", "example": "REVOKED" }
+            }
+          }
+        }
+      },
+      "RuleConditions": {
+        "type": "object",
+        "description": "规则触发条件，分为网络/传输层通用条件和可选的协议专属匹配条件。protocol_match 不传时退化为纯 IP/端口级别过滤。",
+        "required": ["network"],
+        "properties": {
+          "network": { "$ref": "#/components/schemas/NetworkConditions" },
+          "protocol_match": { "$ref": "#/components/schemas/ProtocolMatch" }
+        }
+      },
+      "RuleObject": {
+        "type": "object",
+        "description": "规则完整定义（Controller 执行面，不含时间/作者元数据。元数据由 App-Backend 在 PostgreSQL 层维护，经 Backend→Controller 调用时剥离）",
+        "properties": {
+          "rule_id": { "type": "string", "example": "rule-uuid-0001" },
+          "name": { "type": "string", "example": "Block-Modbus-Scanner" },
+          "description": { "type": "string" },
+          "type": { "type": "string", "enum": ["flow", "node", "connection"] },
+          "priority": { "type": "integer", "default": 200 },
+          "conditions": { "$ref": "#/components/schemas/RuleConditions" },
+          "action": { "type": "string", "enum": ["DROP", "REDIRECT", "THROTTLE", "ALLOW"] },
+          "duration_seconds": { "type": "integer", "default": 7200 },
+          "status": { "type": "string", "enum": ["enabled", "disabled", "pending"] }
+        }
+      },
+      "CreateRuleRequest": {
+        "type": "object",
+        "required": ["rule"],
+        "properties": {
+          "rule": { "$ref": "#/components/schemas/RuleObject" }
+        }
+      },
+      "UpdateRuleRequest": {
+        "type": "object",
+        "required": ["rule"],
+        "properties": {
+          "rule": {
+            "type": "object",
+            "description": "规则部分字段（增量更新，不含元数据）",
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "priority": { "type": "integer" },
+              "conditions": { "$ref": "#/components/schemas/RuleConditions" },
+              "action": { "type": "string" },
+              "duration_seconds": { "type": "integer" },
+              "status": { "type": "string" }
+            }
+          }
+        }
+      },
+      "RuleMutationResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "msg": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "rule_id": { "type": "string", "example": "rule-uuid-0001" },
+              "status": { "type": "string", "example": "created" }
+            }
+          }
+        }
+      },
+      "RuleListResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "msg": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "rules": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/RuleSummary" }
+              }
+            }
+          }
+        }
+      },
+      "RuleSummary": {
+        "type": "object",
+        "description": "规则摘要（Controller 侧，不含时间/作者元数据）",
+        "properties": {
+          "rule_id": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "status": { "type": "string" },
+          "priority": { "type": "integer" }
+        }
+      },
+      "RuleDetailResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "msg": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "rule": { "$ref": "#/components/schemas/RuleObject" }
+            }
+          }
+        }
+      },
+      "RuleTargetRequest": {
+        "type": "object",
+        "properties": {
+          "target_nodes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["node-plc-1", "node-plc-2"]
+          },
+          "target_links": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": []
+          },
+          "target_flows": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["192.168.1.100:502->10.0.0.5:*"]
+          }
+        }
+      },
+      "RuleApplyResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "msg": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "rule_id": { "type": "string" },
+              "status": { "type": "string", "enum": ["applied", "revoked"] },
+              "applied_count": {
+                "type": "object",
+                "properties": {
+                  "nodes": { "type": "integer" },
+                  "links": { "type": "integer" },
+                  "flows": { "type": "integer" }
+                }
+              },
+              "revoked_count": {
+                "type": "object",
+                "properties": {
+                  "nodes": { "type": "integer" },
+                  "links": { "type": "integer" },
+                  "flows": { "type": "integer" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "TopologyNode": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "node-plc-1" },
+          "name": { "type": "string", "example": "PLC-01" },
+          "type": { "type": "string", "enum": ["switch", "plc", "rtu", "hmi", "scada", "sensor", "workstation", "honeypot"] },
+          "ip": { "type": "string", "example": "192.168.1.20" },
+          "status": { "type": "string", "enum": ["online", "offline", "maintenance"] },
+          "datapath_id": { "type": "string", "description": "仅交换机类型有此字段" }
+        }
+      },
+      "TopologyLink": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "link-001" },
+          "source": { "type": "string" },
+          "target": { "type": "string" },
+          "src_port": { "type": "integer" },
+          "dst_port": { "type": "integer" },
+          "bandwidth_mbps": { "type": "number" },
+          "status": { "type": "string", "enum": ["active", "inactive", "degraded"] }
+        }
+      },
+      "TopologyResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "msg": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "nodes": { "type": "array", "items": { "$ref": "#/components/schemas/TopologyNode" } },
+              "links": { "type": "array", "items": { "$ref": "#/components/schemas/TopologyLink" } }
+            }
+          }
+        }
+      },
+      "NodeMetrics": {
+        "type": "object",
+        "properties": {
+          "cpu_usage": { "type": "number", "description": "CPU 使用率 (%)" },
+          "memory_usage": { "type": "number", "description": "内存使用率 (%)" },
+          "network_throughput_mbps": { "type": "number", "description": "网络吞吐量 (Mbps)" }
+        }
+      },
+      "NodeStatusResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "msg": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "node_id": { "type": "string" },
+              "status": { "type": "string", "enum": ["online", "offline", "maintenance", "error"] },
+              "last_updated": { "type": "string", "format": "date-time" },
+              "metrics": { "$ref": "#/components/schemas/NodeMetrics" }
+            }
+          }
+        }
+      },
+      "NodeStatEntry": {
+        "type": "object",
+        "properties": {
+          "node_id": { "type": "string" },
+          "avg_cpu": { "type": "number" },
+          "avg_memory": { "type": "number" },
+          "avg_throughput_mbps": { "type": "number" },
+          "sample_count": { "type": "integer" }
+        }
+      },
+      "NodeStatsResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "msg": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "stats": { "type": "array", "items": { "$ref": "#/components/schemas/NodeStatEntry" } }
+            }
+          }
+        }
+      },
+      "LinkMetrics": {
+        "type": "object",
+        "properties": {
+          "bandwidth_usage_mbps": { "type": "number" },
+          "latency_ms": { "type": "number" },
+          "packet_loss_pct": { "type": "number" }
+        }
+      },
+      "LinkStatusResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "msg": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "link_id": { "type": "string" },
+              "status": { "type": "string", "enum": ["active", "inactive", "degraded"] },
+              "last_updated": { "type": "string", "format": "date-time" },
+              "metrics": { "$ref": "#/components/schemas/LinkMetrics" }
+            }
+          }
+        }
+      },
+      "LinkStatEntry": {
+        "type": "object",
+        "properties": {
+          "link_id": { "type": "string" },
+          "avg_bandwidth_mbps": { "type": "number" },
+          "avg_latency_ms": { "type": "number" },
+          "avg_packet_loss_pct": { "type": "number" },
+          "sample_count": { "type": "integer" }
+        }
+      },
+      "LinkStatsResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "msg": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "stats": { "type": "array", "items": { "$ref": "#/components/schemas/LinkStatEntry" } }
+            }
+          }
+        }
+      },
+      "ControlResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "msg": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "node_id": { "type": "string" },
+              "link_id": { "type": "string" },
+              "action": { "type": "string", "example": "start" },
+              "status": { "type": "string", "example": "started" }
+            }
+          }
+        }
+      },
+    "SwitchSummary": {
+      "type": "object",
+      "description": "交换机摘要信息",
+      "properties": {
+        "dpid": { "type": "string", "example": "0000000000000001" },
+        "manufacturer": { "type": "string", "example": "Huawei" },
+        "hardware": { "type": "string", "example": "S6730-H48X6C" },
+        "software": { "type": "string", "example": "V200R020C10" },
+        "serial_number": { "type": "string", "example": "2102351XXX" },
+        "ports": { "type": "integer", "example": 54 },
+        "status": { "type": "string", "enum": ["connected", "disconnected"], "example": "connected" },
+        "connected_since": { "type": "string", "format": "date-time" }
+      }
+    },
+    "SwitchListResponse": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "integer", "example": 200 },
+        "msg": { "type": "string", "example": "success" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "switches": { "type": "array", "items": { "$ref": "#/components/schemas/SwitchSummary" } }
+          }
+        }
+      }
+    },
+    "SwitchPort": {
+      "type": "object",
+      "properties": {
+        "port_no": { "type": "integer", "example": 1 },
+        "name": { "type": "string", "example": "GigabitEthernet0/0/1" },
+        "mac": { "type": "string", "example": "00:1A:2B:3C:4D:01" },
+        "speed_mbps": { "type": "integer", "example": 1000 },
+        "status": { "type": "string", "enum": ["up", "down"] },
+        "tx_bytes": { "type": "integer", "example": 1234567890 },
+        "rx_bytes": { "type": "integer", "example": 9876543210 },
+        "tx_packets": { "type": "integer", "example": 1500000 },
+        "rx_packets": { "type": "integer", "example": 8500000 }
+      }
+    },
+    "SwitchDetailResponse": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "integer", "example": 200 },
+        "msg": { "type": "string", "example": "success" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "dpid": { "type": "string", "example": "0000000000000001" },
+            "manufacturer": { "type": "string", "example": "Huawei" },
+            "hardware": { "type": "string", "example": "S6730-H48X6C" },
+            "software": { "type": "string", "example": "V200R020C10" },
+            "serial_number": { "type": "string" },
+            "capabilities": { "type": "array", "items": { "type": "string" }, "example": ["FLOW_STATS", "TABLE_STATS", "PORT_STATS", "METER"] },
+            "ports": { "type": "array", "items": { "$ref": "#/components/schemas/SwitchPort" } },
+            "status": { "type": "string" },
+            "connected_since": { "type": "string", "format": "date-time" }
+          }
+        }
+      }
+    },
+    "FlowEntry": {
+      "type": "object",
+      "description": "OpenFlow 流表项",
+      "properties": {
+        "flow_id": { "type": "string", "example": "flow-entry-uuid-001" },
+        "table_id": { "type": "integer", "example": 0 },
+        "priority": { "type": "integer", "example": 200 },
+        "match": { "$ref": "#/components/schemas/FlowMatch" },
+        "action": { "type": "string", "example": "DROP" },
+        "duration_seconds": { "type": "integer", "example": 3600 },
+        "packet_count": { "type": "integer", "example": 145 },
+        "byte_count": { "type": "integer", "example": 34800 },
+        "status": { "type": "string", "enum": ["active", "expired"], "example": "active" }
+      }
+    },
+    "FlowEntryListResponse": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "integer", "example": 200 },
+        "msg": { "type": "string", "example": "success" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "dpid": { "type": "string", "example": "0000000000000001" },
+            "flow_count": { "type": "integer", "example": 3 },
+            "flows": { "type": "array", "items": { "$ref": "#/components/schemas/FlowEntry" } }
+          }
+        }
+      }
+    },
+    "PortStat": {
+      "type": "object",
+      "properties": {
+        "port_no": { "type": "integer", "example": 1 },
+        "name": { "type": "string", "example": "GigabitEthernet0/0/1" },
+        "status": { "type": "string", "enum": ["up", "down"] },
+        "tx_bytes": { "type": "integer" },
+        "rx_bytes": { "type": "integer" },
+        "tx_pps": { "type": "integer", "example": 3500 },
+        "rx_pps": { "type": "integer", "example": 12000 },
+        "errors": { "type": "integer", "example": 2 },
+        "dropped": { "type": "integer", "example": 0 }
+      }
+    },
+    "PortStatsResponse": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "integer", "example": 200 },
+        "msg": { "type": "string", "example": "success" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "dpid": { "type": "string" },
+            "ports": { "type": "array", "items": { "$ref": "#/components/schemas/PortStat" } }
+          }
+        }
+      }
+    },
+    "MeterBand": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["DROP", "DSCP_REMARK"], "example": "DROP" },
+        "rate": { "type": "integer", "description": "限速值 (Kbps)", "example": 100 },
+        "burst_size": { "type": "integer", "description": "突发大小 (KB)", "example": 10 }
+      }
+    },
+    "CreateMeterRequest": {
+      "type": "object",
+      "required": ["dpid", "meter"],
+      "properties": {
+        "dpid": { "type": "string", "description": "目标交换机 DPID", "example": "0000000000000001" },
+        "meter": {
+          "type": "object",
+          "required": ["bands"],
+          "properties": {
+            "name": { "type": "string", "example": "throttle-scanner-502" },
+            "flags": { "type": "array", "items": { "type": "string", "enum": ["KBPS", "PKTPS", "BURST", "STATS"] }, "example": ["KBPS", "BURST"] },
+            "bands": { "type": "array", "items": { "$ref": "#/components/schemas/MeterBand" } }
+          }
+        }
+      }
+    },
+    "MeterMutationResponse": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "integer", "example": 200 },
+        "msg": { "type": "string", "example": "success" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "meter_id": { "type": "string", "example": "meter-uuid-0001" },
+            "dpid": { "type": "string" },
+            "status": { "type": "string", "enum": ["created", "deleted"], "example": "created" }
+          }
+        }
+      }
+    },
+    "MeterSummary": {
+      "type": "object",
+      "properties": {
+        "meter_id": { "type": "string", "example": "meter-uuid-0001" },
+        "dpid": { "type": "string", "example": "0000000000000001" },
+        "name": { "type": "string", "example": "throttle-scanner-502" },
+        "rate": { "type": "integer", "example": 100 },
+        "packet_count": { "type": "integer", "example": 25000 },
+        "byte_count": { "type": "integer", "example": 1500000 },
+        "status": { "type": "string", "enum": ["active", "inactive"], "example": "active" }
+      }
+    },
+    "MeterListResponse": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "integer", "example": 200 },
+        "msg": { "type": "string", "example": "success" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "meters": { "type": "array", "items": { "$ref": "#/components/schemas/MeterSummary" } }
+          }
+        }
+      }
+    },
+    "FlowEffectResponse": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "integer", "example": 200 },
+        "msg": { "type": "string", "example": "success" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "flow_id": { "type": "string", "example": "flow-rule-001" },
+            "packet_count": { "type": "integer", "example": 1523 },
+            "byte_count": { "type": "integer", "example": 365520 },
+            "last_hit": { "type": "string", "format": "date-time", "example": "2026-04-29T10:35:12Z" },
+            "duration_active_seconds": { "type": "integer", "example": 312 },
+            "applied_on": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "dpid": { "type": "string" },
+                  "table_id": { "type": "integer" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "RuleEffectBreakdown": {
+      "type": "object",
+      "properties": {
+        "dpid": { "type": "string", "example": "0000000000000001" },
+        "flow_id": { "type": "string", "example": "flow-entry-uuid-001" },
+        "packet_count": { "type": "integer", "example": 2500 },
+        "byte_count": { "type": "integer", "example": 600000 }
+      }
+    },
+    "RuleEffectResponse": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "integer", "example": 200 },
+        "msg": { "type": "string", "example": "success" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "rule_id": { "type": "string", "example": "rule-uuid-0001" },
+            "total_packet_count": { "type": "integer", "example": 4521 },
+            "total_byte_count": { "type": "integer", "example": 1085040 },
+            "affected_nodes": { "type": "integer", "example": 2 },
+            "affected_links": { "type": "integer", "example": 0 },
+            "affected_flows": { "type": "integer", "example": 1 },
+            "breakdown": { "type": "array", "items": { "$ref": "#/components/schemas/RuleEffectBreakdown" } }
+          }
+        }
+      }
+    },
+    "HealthResponse": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "integer", "example": 200 },
+        "msg": { "type": "string", "example": "success" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["alive", "degraded"], "example": "alive" },
+            "uptime_seconds": { "type": "integer", "example": 86400 },
+            "version": { "type": "string", "example": "1.0.0" }
+          }
+        }
+      }
+    },
+    "HealthReadyResponse": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "integer", "example": 200 },
+        "msg": { "type": "string", "example": "success" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["ready", "not_ready"], "example": "ready" },
+            "openflow_connections": { "type": "integer", "example": 3 },
+            "db_connected": { "type": "boolean", "example": true }
+          }
+        }
+      }
+    },
+    "NetworkConditions": {
+      "type": "object",
+      "description": "网络/传输层通用匹配条件，所有协议共用",
+      "properties": {
+        "src_ip": { "type": "string", "example": "192.168.10.0/24" },
+        "dst_ip": { "type": "string", "example": "192.168.1.20" },
+        "src_port": { "type": "integer", "example": 45321 },
+        "dst_port": { "type": "integer", "example": 502 },
+        "transport": { "type": "string", "enum": ["TCP", "UDP"], "example": "TCP" }
+      }
+    },
+    "AddressRange": {
+      "type": "object",
+      "description": "地址区间，用于寄存器/IOA/数据点范围限定",
+      "properties": {
+        "start": { "type": "integer", "example": 1000 },
+        "end": { "type": "integer", "example": 5000 }
+      }
+    },
+    "ModbusConfig": {
+      "type": "object",
+      "description": "Modbus/TCP 协议专属匹配条件",
+      "properties": {
+        "func_codes": { "type": "array", "items": { "type": "integer" }, "example": [1, 3, 15, 16] },
+        "unit_id": { "type": "integer", "description": "Modbus 单元标识符", "example": 1 },
+        "address_range": { "$ref": "#/components/schemas/AddressRange" }
+      }
+    },
+    "ModbusMatch": {
+      "type": "object",
+      "required": ["type", "modbus"],
+      "properties": {
+        "type": { "type": "string", "enum": ["modbus"] },
+        "modbus": { "$ref": "#/components/schemas/ModbusConfig" }
+      }
+    },
+    "Iec104Config": {
+      "type": "object",
+      "description": "IEC 60870-5-104 协议专属匹配条件",
+      "properties": {
+        "type_ids": { "type": "array", "items": { "type": "integer" }, "description": "ASDU 类型标识", "example": [45, 46] },
+        "cot": { "type": "array", "items": { "type": "integer" }, "description": "传送原因 (Cause of Transmission)", "example": [6, 7] },
+        "common_address": { "type": "integer", "description": "公共地址 (ASDU Address)", "example": 1 },
+        "ioa_range": { "$ref": "#/components/schemas/AddressRange" }
+      }
+    },
+    "Iec104Match": {
+      "type": "object",
+      "required": ["type", "iec104"],
+      "properties": {
+        "type": { "type": "string", "enum": ["iec104"] },
+        "iec104": { "$ref": "#/components/schemas/Iec104Config" }
+      }
+    },
+    "Dnp3Config": {
+      "type": "object",
+      "description": "DNP3 协议专属匹配条件",
+      "properties": {
+        "function_codes": { "type": "array", "items": { "type": "integer" }, "description": "DNP3 功能码", "example": [1, 2] },
+        "object_groups": { "type": "array", "items": { "type": "integer" }, "description": "对象组", "example": [10, 12] },
+        "point_range": { "$ref": "#/components/schemas/AddressRange" }
+      }
+    },
+    "Dnp3Match": {
+      "type": "object",
+      "required": ["type", "dnp3"],
+      "properties": {
+        "type": { "type": "string", "enum": ["dnp3"] },
+        "dnp3": { "$ref": "#/components/schemas/Dnp3Config" }
+      }
+    },
+    "Iec61850Config": {
+      "type": "object",
+      "description": "IEC 61850 协议专属匹配条件",
+      "properties": {
+        "service_type": { "type": "string", "enum": ["GOOSE", "SV", "MMS"], "description": "服务类型", "example": "GOOSE" },
+        "appid": { "type": "integer", "description": "应用标识 (APPID)", "example": 4096 },
+        "gocb_ref_pattern": { "type": "string", "description": "GOOSE 控制块引用模式 (通配符)", "example": "simpleIOGenericIO/LLN0$GO$*" }
+      }
+    },
+    "Iec61850Match": {
+      "type": "object",
+      "required": ["type", "iec61850"],
+      "properties": {
+        "type": { "type": "string", "enum": ["iec61850"] },
+        "iec61850": { "$ref": "#/components/schemas/Iec61850Config" }
+      }
+    },
+    "ProtocolMatch": {
+      "description": "应用层协议专属匹配条件。通过 type 字段区分协议类型，不传时退化为纯 IP/端口级别过滤。",
+      "oneOf": [
+        { "$ref": "#/components/schemas/ModbusMatch" },
+        { "$ref": "#/components/schemas/Iec104Match" },
+        { "$ref": "#/components/schemas/Dnp3Match" },
+        { "$ref": "#/components/schemas/Iec61850Match" }
+      ],
+      "discriminator": {
+        "propertyName": "type",
+        "mapping": {
+          "modbus": "#/components/schemas/ModbusMatch",
+          "iec104": "#/components/schemas/Iec104Match",
+          "dnp3": "#/components/schemas/Dnp3Match",
+          "iec61850": "#/components/schemas/Iec61850Match"
+        }
+      }
+    }
+    }
+  },
+  "security": [
+    { "bearerAuth": [] }
+  ]
+}

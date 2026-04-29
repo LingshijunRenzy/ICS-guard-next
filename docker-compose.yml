@@ -1,0 +1,315 @@
+# =============================================================================
+# ICS-Guard Next — Phase 1 开发环境编排
+# =============================================================================
+# 启动: docker compose up -d
+# 停止: docker compose down
+# 带模拟器: docker compose --profile simulation up -d
+#
+# 服务归属:
+#   [A] = Team A (Backend + WebUI + 数据基础设施)
+#   [B] = Team B (Controller + Engine + 设备模拟)
+#   [共享] = 两队共用基础设施
+# =============================================================================
+
+version: "3.9"
+
+# ---------------------------------------------------------------------------
+# 共享网络
+# ---------------------------------------------------------------------------
+networks:
+  ics-guard-net:
+    name: ics-guard-net
+    driver: bridge
+
+# ---------------------------------------------------------------------------
+# 持久化卷
+# ---------------------------------------------------------------------------
+volumes:
+  pgdata:
+    name: ics-guard-pgdata
+  redisdata:
+    name: ics-guard-redisdata
+  redpandadata:
+    name: ics-guard-redpandadata
+
+# ---------------------------------------------------------------------------
+# 服务定义
+# ---------------------------------------------------------------------------
+services:
+
+  # =========================================================================
+  # 数据基础设施 (共享)
+  # =========================================================================
+
+  # ---- Redpanda (Kafka 兼容消息总线) ----
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.3.6
+    container_name: ics-redpanda
+    hostname: redpanda
+    networks:
+      - ics-guard-net
+    ports:
+      - "9092:9092"    # Kafka API
+      - "9644:9644"    # Admin API
+    volumes:
+      - redpandadata:/var/lib/redpanda/data
+    command:
+      - redpanda
+      - start
+      - --smp=2
+      - --memory=1G
+      - --reserve-memory=0M
+      - --overprovisioned
+      - --kafka-addr=INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093
+      - --advertise-kafka-addr=INTERNAL://redpanda:9092,EXTERNAL://localhost:9092
+      - --pandaproxy-addr=INTERNAL://0.0.0.0:8082,EXTERNAL://0.0.0.0:8083
+      - --advertise-pandaproxy-addr=INTERNAL://redpanda:8082,EXTERNAL://localhost:8083
+      - --default-log-level=info
+      - --auto-create-topics-enabled=true
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ---- PostgreSQL (A) ----
+  postgres:
+    image: postgres:16-alpine
+    container_name: ics-postgres
+    hostname: postgres
+    networks:
+      - ics-guard-net
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ics_guard}
+      POSTGRES_USER: ${POSTGRES_USER:-icsguard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-icsguard-dev}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-icsguard}", "-d", "${POSTGRES_DB:-ics_guard}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # ---- Redis (A) ----
+  redis:
+    image: redis:7-alpine
+    container_name: ics-redis
+    hostname: redis
+    networks:
+      - ics-guard-net
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # ---- Kafka Topic 初始化 (共享) ----
+  # 预创建 6 个 topic，确保两队启动时 topic 已就绪
+  kafka-init:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.3.6
+    container_name: ics-kafka-init
+    hostname: kafka-init
+    networks:
+      - ics-guard-net
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for Redpanda to be ready..."
+        until rpk cluster health --brokers redpanda:9092 2>/dev/null | grep -q 'Healthy'; do
+          sleep 2
+        done
+        echo "Redpanda is healthy. Creating topics..."
+
+        # 1. 流量特征 (Controller → Engine, 极高频, 多分区)
+        rpk topic create ics.traffic.features \
+          --brokers redpanda:9092 \
+          --partitions 16 \
+          --replicas 1 \
+          --topic-config retention.ms=3600000 \
+          --topic-config segment.bytes=1073741824 \
+          2>/dev/null || echo "  ics.traffic.features (already exists)"
+
+        # 2. 威胁告警 (Engine → Backend)
+        rpk topic create ics.threat.alerts \
+          --brokers redpanda:9092 \
+          --partitions 4 \
+          --replicas 1 \
+          --topic-config retention.ms=604800000 \
+          2>/dev/null || echo "  ics.threat.alerts (already exists)"
+
+        # 3. 拓扑事件 (Controller → Backend)
+        rpk topic create ics.topology.events \
+          --brokers redpanda:9092 \
+          --partitions 4 \
+          --replicas 1 \
+          --topic-config retention.ms=604800000 \
+          2>/dev/null || echo "  ics.topology.events (already exists)"
+
+        # 4. 聚合流量指标 (Controller → Backend)
+        rpk topic create ics.traffic.metrics \
+          --brokers redpanda:9092 \
+          --partitions 8 \
+          --replicas 1 \
+          --topic-config retention.ms=3600000 \
+          --topic-config segment.bytes=1073741824 \
+          2>/dev/null || echo "  ics.traffic.metrics (already exists)"
+
+        # 5. 模型事件 (Backend → Engine)
+        rpk topic create ics.model.events \
+          --brokers redpanda:9092 \
+          --partitions 1 \
+          --replicas 1 \
+          --topic-config retention.ms=2592000000 \
+          2>/dev/null || echo "  ics.model.events (already exists)"
+
+        # 6. 审计日志 (Backend → ES/SIEM)
+        rpk topic create ics.audit.logs \
+          --brokers redpanda:9092 \
+          --partitions 4 \
+          --replicas 1 \
+          --topic-config retention.ms=7776000000 \
+          2>/dev/null || echo "  ics.audit.logs (already exists)"
+
+        echo "All topics created."
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
+  # =========================================================================
+  # Team A — Backend + WebUI
+  # =========================================================================
+
+  # ---- App Backend (A) ----
+  app-backend:
+    build:
+      context: ./app-backend
+      dockerfile: Dockerfile
+    container_name: ics-app-backend
+    hostname: app-backend
+    networks:
+      - ics-guard-net
+    ports:
+      - "${APP_BACKEND_PORT:-8080}:8080"
+    environment:
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-redpanda:9092}
+      # PostgreSQL
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ics_guard}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-icsguard}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-icsguard-dev}
+      # Redis
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST:-redis}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      # Controller
+      CONTROLLER_BASE_URL: ${CONTROLLER_BASE_URL:-http://sdn-controller:8000}
+      # Server
+      SERVER_PORT: "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+
+  # ---- Web UI (A) ----
+  web-ui:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ics-web-ui
+    hostname: web-ui
+    networks:
+      - ics-guard-net
+    ports:
+      - "${WEB_UI_PORT:-5173}:80"
+    environment:
+      VITE_API_BASE_URL: http://app-backend:8080
+    depends_on:
+      - app-backend
+
+  # =========================================================================
+  # Team B — Controller + Engine + Simulator
+  # =========================================================================
+
+  # ---- SDN Controller (B) ----
+  sdn-controller:
+    build:
+      context: ./sdn-controller
+      dockerfile: Dockerfile
+    container_name: ics-sdn-controller
+    hostname: sdn-controller
+    networks:
+      - ics-guard-net
+    ports:
+      - "${CONTROLLER_OPENFLOW_TCP:-6633}:6633"
+      - "${CONTROLLER_OPENFLOW_ADMIN:-6653}:6653"
+      - "${CONTROLLER_PORT:-8000}:8000"
+    environment:
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-redpanda:9092}
+      # Controller
+      CONTROLLER_PORT: "${CONTROLLER_PORT:-8000}"
+      CONTROLLER_OPENFLOW_TCP: "${CONTROLLER_OPENFLOW_TCP:-6633}"
+      CONTROLLER_OPENFLOW_ADMIN: "${CONTROLLER_OPENFLOW_ADMIN:-6653}"
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+  # ---- AI Inference Engine (B) ----
+  inference-engine:
+    build:
+      context: ./inference-engine
+      dockerfile: Dockerfile
+    container_name: ics-inference-engine
+    hostname: inference-engine
+    networks:
+      - ics-guard-net
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-redpanda:9092}
+      MODEL_DIR: ${MODEL_DIR:-/models}
+    volumes:
+      - ./models:${MODEL_DIR:-/models}:ro
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    # GPU 透传 (开发环境可选，取消注释以启用):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ---- Device Simulator (B, 仅开发/演示) ----
+  device-simulator:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: ics-device-simulator
+    hostname: device-simulator
+    networks:
+      - ics-guard-net
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-redpanda:9092}
+      SIMULATOR_MODE: ${SIMULATOR_MODE:-kafka}
+      SIMULATOR_SCENARIO: ${SIMULATOR_SCENARIO:-/scenarios/demo-small-factory.yaml}
+    volumes:
+      - ./simulator/scenarios:/scenarios:ro
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    profiles:
+      - simulation

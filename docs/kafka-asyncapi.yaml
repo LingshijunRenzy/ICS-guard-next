@@ -1,0 +1,523 @@
+asyncapi: 2.6.0
+info:
+  title: ICS Guard Next - Event Driven Architecture
+  version: 1.0.0
+  description: |
+    AsyncAPI specification for the ICS Guard Next system.
+
+    团队边界：本文档定义 Backend+WebUI 侧（App-Backend / Java）与
+    Controller+Engine 侧（SDN Controller / Inference-Engine / Python）之间的
+    Kafka 消息契约。两侧由不同团队开发，本文档为集成依据。
+
+    内部 topic（ics.traffic.features, Controller→Engine）仅保留以供参考，
+    属于 Controller+Engine 侧的团队内部实现。
+
+servers:
+  redpanda-dev:
+    url: localhost:9092
+    protocol: kafka
+    description: Local Redpanda broker for development.
+
+channels:
+  ics.traffic.features:
+    description: |
+      Topic for streaming extracted industrial network flow features from the SDN Controller to the AI Inference Engine.
+      The SDN Controller produces these messages, and the Inference Engine consumes them.
+    publish:
+      summary: SDN Controller sends flow features.
+      operationId: publishFlowFeatures
+      message:
+        $ref: '#/components/messages/TrafficFeatureMessage'
+    subscribe:
+      summary: Inference Engine receives flow features for threat detection.
+      operationId: consumeFlowFeatures
+      message:
+        $ref: '#/components/messages/TrafficFeatureMessage'
+
+  ics.threat.alerts:
+    description: |
+      Topic for streaming threat alerts from the Inference Engine to the Java App Backend.
+      The Inference Engine produces these messages when an anomaly is detected, and the App Backend consumes them for persistence and notifications.
+    publish:
+      summary: Inference Engine publishes threat alerts.
+      operationId: publishThreatAlert
+      message:
+        $ref: '#/components/messages/ThreatAlertMessage'
+    subscribe:
+      summary: App Backend consumes threat alerts.
+      operationId: consumeThreatAlert
+      message:
+        $ref: '#/components/messages/ThreatAlertMessage'
+
+  ics.topology.events:
+    description: |
+      Topic for real-time topology and node status changes from the SDN Controller to the App Backend.
+      Carries node online/offline events, link status changes, and device discovery/removal.
+      团队边界：Controller+Engine 侧 → Backend+WebUI 侧。
+    publish:
+      summary: SDN Controller publishes topology changes.
+      operationId: publishTopologyEvent
+      message:
+        $ref: '#/components/messages/TopologyEventMessage'
+    subscribe:
+      summary: App Backend consumes topology events for UI updates and persistence.
+      operationId: consumeTopologyEvent
+      message:
+        $ref: '#/components/messages/TopologyEventMessage'
+
+  ics.traffic.metrics:
+    description: |
+      Topic for aggregated traffic statistics from the SDN Controller to the App Backend.
+      Produced periodically (every few seconds), not per-packet.
+      Used by the Web UI dashboard for real-time traffic monitoring.
+      团队边界：Controller+Engine 侧 → Backend+WebUI 侧。
+    publish:
+      summary: SDN Controller publishes aggregated traffic metrics.
+      operationId: publishTrafficMetrics
+      message:
+        $ref: '#/components/messages/TrafficMetricsMessage'
+    subscribe:
+      summary: App Backend consumes traffic metrics for dashboard display.
+      operationId: consumeTrafficMetrics
+      message:
+        $ref: '#/components/messages/TrafficMetricsMessage'
+
+  ics.model.events:
+    description: |
+      Topic for model and threshold management from the App Backend to the Inference Engine.
+      Carries model update notifications, threshold configuration changes, and reload signals.
+      团队边界：Backend+WebUI 侧 → Controller+Engine 侧。
+    publish:
+      summary: App Backend publishes model update events.
+      operationId: publishModelEvent
+      message:
+        $ref: '#/components/messages/ModelEventMessage'
+    subscribe:
+      summary: Inference Engine consumes model events to reload models or update thresholds.
+      operationId: consumeModelEvent
+      message:
+        $ref: '#/components/messages/ModelEventMessage'
+
+  ics.audit.logs:
+    description: |
+      Topic for audit log streaming from the App Backend to external consumers (ElasticSearch, SIEM).
+      Captures all user operations for compliance with security regulations.
+      Kafka 仅作为传输管道，最终消费方为 ELK/SIEM 等外部系统。
+    publish:
+      summary: App Backend publishes audit logs.
+      operationId: publishAuditLog
+      message:
+        $ref: '#/components/messages/AuditLogMessage'
+    subscribe:
+      summary: External consumers (ElasticSearch, SIEM) ingest audit logs.
+      operationId: consumeAuditLog
+      message:
+        $ref: '#/components/messages/AuditLogMessage'
+
+components:
+  messages:
+    TrafficFeatureMessage:
+      name: TrafficFeature
+      title: Traffic Feature Message
+      summary: Raw flow features extracted from network traffic.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TrafficFeaturePayload'
+        
+    ThreatAlertMessage:
+      name: ThreatAlert
+      title: Threat Alert Message
+      summary: Alert generated when malicious traffic is detected.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ThreatAlertPayload'
+
+    TopologyEventMessage:
+      name: TopologyEvent
+      title: Topology Event Message
+      summary: Real-time topology or node status change.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TopologyEventPayload'
+
+    TrafficMetricsMessage:
+      name: TrafficMetrics
+      title: Traffic Metrics Message
+      summary: Aggregated traffic statistics for a node or link.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TrafficMetricsPayload'
+
+    ModelEventMessage:
+      name: ModelEvent
+      title: Model Event Message
+      summary: Model update or threshold configuration change.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ModelEventPayload'
+
+    AuditLogMessage:
+      name: AuditLog
+      title: Audit Log Message
+      summary: User operation audit record.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AuditLogPayload'
+
+  schemas:
+    TrafficFeaturePayload:
+      type: object
+      required:
+        - flow_id
+        - timestamp
+        - src_ip
+        - dst_ip
+        - protocol
+        - features
+      properties:
+        flow_id:
+          type: string
+          description: Unique identifier for the network flow.
+          example: "192.168.1.10:502-10.0.0.5:12345-TCP"
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds of when the flow was processed.
+          example: 1684300000000
+        src_ip:
+          type: string
+          description: Source IP address.
+          example: "192.168.1.10"
+        dst_ip:
+          type: string
+          description: Destination IP address.
+          example: "10.0.0.5"
+        src_port:
+          type: integer
+          description: Source port number (if applicable).
+          example: 502
+        dst_port:
+          type: integer
+          description: Destination port number (if applicable).
+          example: 12345
+        protocol:
+          type: string
+          description: Transport layer protocol (e.g., TCP, UDP, ICMP).
+          example: "TCP"
+        features:
+          type: array
+          description: Ordered array of numerical features extracted for the ML model (e.g., packet counts, byte counts, variance).
+          items:
+            type: number
+            format: float
+          example: [0.12, 45.0, 1.05, 0.0, 99.9]
+
+    ThreatAlertPayload:
+      type: object
+      required:
+        - alert_id
+        - flow_id
+        - timestamp
+        - src_ip
+        - dst_ip
+        - threat_type
+        - confidence
+        - ai_model
+      properties:
+        alert_id:
+          type: string
+          format: uuid
+          description: Unique identifier for this specific alert.
+          example: "a1b2c3d4-e5f6-7890-1234-56789abcdef0"
+        flow_id:
+          type: string
+          description: Reference to the flow_id that triggered this alert.
+          example: "192.168.1.10:502-10.0.0.5:12345-TCP"
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds of when the threat was detected.
+          example: 1684300000050
+        src_ip:
+          type: string
+          example: "192.168.1.10"
+        dst_ip:
+          type: string
+          example: "10.0.0.5"
+        threat_type:
+          type: string
+          description: Classification of the threat.
+          enum: [DDoS, MITM, Data_Exfiltration, Unknown_Anomaly]
+          example: "DDoS"
+        confidence:
+          type: number
+          format: float
+          description: Confidence score of the detection algorithm (0.0 to 1.0).
+          example: 0.98
+        ai_model:
+          type: string
+          description: The specific model layer that made the decision.
+          enum: [pca, lightgbm, dbscan, cascade]
+          example: "lightgbm"
+
+    TopologyEventPayload:
+      type: object
+      required:
+        - event_id
+        - event_type
+        - timestamp
+        - node_id
+      properties:
+        event_id:
+          type: string
+          format: uuid
+          description: Unique identifier for this event.
+          example: "e1f2g3h4-i5j6-7890-1234-56789abcdef0"
+        event_type:
+          type: string
+          enum: [node_online, node_offline, link_up, link_down, device_discovered, device_removed]
+          description: Type of topology change.
+          example: "node_online"
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds.
+          example: 1684300000100
+        node_id:
+          type: string
+          description: Identifier of the affected node (switch DPID or device ID).
+          example: "0000000000000001"
+        node_name:
+          type: string
+          description: Human-readable name of the node.
+          example: "access-switch-zone-a"
+        node_type:
+          type: string
+          enum: [switch, plc, rtu, hmi, scada, camera, unknown]
+          description: Type of the industrial device.
+          example: "switch"
+        node_ip:
+          type: string
+          description: IP address of the node.
+          example: "192.168.1.1"
+        datapath_id:
+          type: string
+          description: OpenFlow datapath ID (for switch-type nodes).
+          example: "0000000000000001"
+        related_link_id:
+          type: string
+          description: ID of the related link (for link_up/link_down events).
+          example: "link-001"
+        related_node_id:
+          type: string
+          description: ID of the peer node on the other end of the link.
+          example: "node-plc-1"
+        details:
+          type: object
+          description: Optional additional event details (e.g., disconnect reason, port number).
+
+    TrafficMetricsPayload:
+      type: object
+      required:
+        - timestamp
+        - node_id
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds.
+          example: 1684300001000
+        node_id:
+          type: string
+          description: Node identifier (switch DPID or device ID).
+          example: "0000000000000001"
+        datapath_id:
+          type: string
+          description: OpenFlow datapath ID.
+          example: "0000000000000001"
+        ports:
+          type: array
+          description: Per-port traffic statistics.
+          items:
+            type: object
+            properties:
+              port_no:
+                type: integer
+                description: Port number on the switch.
+                example: 1
+              tx_rate_mbps:
+                type: number
+                format: float
+                description: Transmit rate in Mbps.
+                example: 320.5
+              rx_rate_mbps:
+                type: number
+                format: float
+                description: Receive rate in Mbps.
+                example: 85.4
+              tx_bytes_total:
+                type: integer
+                format: int64
+                description: Cumulative transmit bytes.
+                example: 1234567890123
+              rx_bytes_total:
+                type: integer
+                format: int64
+                description: Cumulative receive bytes.
+                example: 9876543210987
+              packet_loss_pct:
+                type: number
+                format: float
+                description: Packet loss percentage.
+                example: 0.01
+        flows:
+          type: array
+          description: Top-N most active flows on this node.
+          items:
+            type: object
+            properties:
+              flow_key:
+                type: string
+                description: 5-tuple flow identifier.
+                example: "192.168.1.10:502->10.0.0.5:12345-TCP"
+              pkt_rate:
+                type: number
+                format: float
+                description: Current packet rate (packets/second).
+                example: 500.0
+              byte_rate:
+                type: number
+                format: float
+                description: Current byte rate (bytes/second).
+                example: 10240.0
+              status:
+                type: string
+                enum: [active, inactive]
+                description: Whether the flow is currently active.
+                example: "active"
+        flow_count:
+          type: integer
+          description: Total number of active flows on this node.
+          example: 42
+
+    ModelEventPayload:
+      type: object
+      required:
+        - event_id
+        - event_type
+        - timestamp
+      properties:
+        event_id:
+          type: string
+          format: uuid
+          description: Unique identifier for this event.
+          example: "f1a2b3c4-d5e6-7890-1234-56789abcdef0"
+        event_type:
+          type: string
+          enum: [model_update, threshold_update, reload_config]
+          description: Type of model management event.
+          example: "model_update"
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds.
+          example: 1684300010000
+        model_version:
+          type: string
+          description: Version string of the new model.
+          example: "251225_105021"
+        model_path:
+          type: string
+          description: File path or URI to the new model artifact.
+          example: "/models/lightgbm_model.pkl"
+        thresholds:
+          type: object
+          description: Updated detection thresholds (only for threshold_update events).
+          properties:
+            alert:
+              type: number
+              format: float
+              example: 0.3
+            throttle:
+              type: number
+              format: float
+              example: 0.6
+            block:
+              type: number
+              format: float
+              example: 0.8
+            redirect:
+              type: number
+              format: float
+              example: 0.9
+        operator:
+          type: string
+          description: Username of the operator who triggered the change.
+          example: "admin"
+
+    AuditLogPayload:
+      type: object
+      required:
+        - log_id
+        - timestamp
+        - operator
+        - action
+        - status
+      properties:
+        log_id:
+          type: string
+          description: Unique audit log identifier.
+          example: "audit-20260429-001"
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds.
+          example: 1684300000000
+        operator:
+          type: string
+          description: Username or service account that performed the action.
+          example: "admin"
+        action:
+          type: string
+          enum:
+            - RULE_CREATE
+            - RULE_UPDATE
+            - RULE_DELETE
+            - RULE_APPLY
+            - RULE_REVOKE
+            - FLOW_BLOCK
+            - FLOW_REVOKE
+            - NODE_START
+            - NODE_STOP
+            - NODE_RESTART
+            - LINK_ENABLE
+            - LINK_DISABLE
+            - USER_LOGIN
+            - USER_LOGOUT
+            - PERMISSION_CHANGE
+            - MODEL_DEPLOY
+            - THRESHOLD_UPDATE
+            - CONFIG_CHANGE
+          description: Type of operation performed.
+          example: "RULE_CREATE"
+        resource:
+          type: string
+          description: Resource type (e.g., rule, node, link, user, model).
+          example: "rule"
+        resource_id:
+          type: string
+          description: Identifier of the affected resource.
+          example: "rule-uuid-0001"
+        status:
+          type: string
+          enum: [success, failure]
+          description: Outcome of the operation.
+          example: "success"
+        details:
+          type: string
+          description: Human-readable description of the operation.
+          example: "Created blocking rule 'Block-Modbus-Scanner' for Modbus TCP 502"
+        client_ip:
+          type: string
+          description: IP address from which the operation was initiated.
+          example: "192.168.1.100"
