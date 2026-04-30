@@ -24,9 +24,11 @@ public class AlertService {
     private static final Set<String> VALID_STATUSES = Set.of("new", "acknowledged", "resolved", "escalated", "false_positive");
 
     private final AlertRepository alertRepository;
+    private final AlertWebSocketService alertWebSocketService;
 
-    public AlertService(AlertRepository alertRepository) {
+    public AlertService(AlertRepository alertRepository, AlertWebSocketService alertWebSocketService) {
         this.alertRepository = alertRepository;
+        this.alertWebSocketService = alertWebSocketService;
     }
 
     @Transactional(readOnly = true)
@@ -61,7 +63,9 @@ public class AlertService {
         AlertEntity alert = alertRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Alert", id));
         alert.setStatus(newStatus);
-        return AlertResponse.from(alertRepository.save(alert));
+        AlertResponse response = AlertResponse.from(alertRepository.save(alert));
+        alertWebSocketService.broadcastStatusChange(id, newStatus);
+        return response;
     }
 
     @Transactional
@@ -73,7 +77,9 @@ public class AlertService {
         }
         alert.setSeverity("critical");
         alert.setStatus("escalated");
-        return AlertResponse.from(alertRepository.save(alert));
+        AlertResponse response = AlertResponse.from(alertRepository.save(alert));
+        alertWebSocketService.broadcastStatusChange(id, "escalated");
+        return response;
     }
 
     @Transactional(readOnly = true)

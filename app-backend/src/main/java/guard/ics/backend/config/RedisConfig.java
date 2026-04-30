@@ -25,6 +25,8 @@ public class RedisConfig {
                         .entryTtl(Duration.ofSeconds(15)))
                 .withCacheConfiguration("trafficStats", RedisCacheConfiguration.defaultCacheConfig()
                         .entryTtl(Duration.ofSeconds(30)))
+                .withCacheConfiguration("dashboard", RedisCacheConfiguration.defaultCacheConfig()
+                        .entryTtl(Duration.ofSeconds(30)))
                 .build();
     }
 }

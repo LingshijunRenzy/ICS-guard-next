@@ -21,4 +21,6 @@ public interface AlertRepository extends JpaRepository<AlertEntity, Long>, JpaSp
 
     @Query("SELECT a FROM AlertEntity a WHERE a.status = 'new' AND a.severity = 'critical' ORDER BY a.triggeredAt DESC")
     List<AlertEntity> findCriticalNew();
+
+    List<AlertEntity> findTop10ByOrderByTriggeredAtDesc();
 }

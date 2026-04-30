@@ -1,8 +1,10 @@
 package guard.ics.backend.kafka.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import guard.ics.backend.alert.dto.AlertResponse;
 import guard.ics.backend.alert.entity.AlertEntity;
 import guard.ics.backend.alert.repository.AlertRepository;
+import guard.ics.backend.alert.service.AlertWebSocketService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -14,10 +16,12 @@ public class AlertConsumer {
     private static final Logger log = LoggerFactory.getLogger(AlertConsumer.class);
     private final AlertRepository alertRepository;
     private final ObjectMapper objectMapper;
+    private final AlertWebSocketService alertWebSocketService;
 
-    public AlertConsumer(AlertRepository alertRepository) {
+    public AlertConsumer(AlertRepository alertRepository, AlertWebSocketService alertWebSocketService) {
         this.alertRepository = alertRepository;
         this.objectMapper = new ObjectMapper();
+        this.alertWebSocketService = alertWebSocketService;
     }
 
     @KafkaListener(topics = "ics.threat.alerts", groupId = "#{T(java.util.UUID).randomUUID().toString()}")
@@ -29,8 +33,9 @@ public class AlertConsumer {
                 return;
             }
             alert.setId(null);
-            alertRepository.save(alert);
-            log.info("Alert saved: traceId={}, type={}, severity={}", alert.getTraceId(), alert.getAlertType(), alert.getSeverity());
+            AlertEntity saved = alertRepository.save(alert);
+            alertWebSocketService.broadcastNewAlert(AlertResponse.from(saved));
+            log.info("Alert saved: traceId={}, type={}, severity={}", saved.getTraceId(), saved.getAlertType(), saved.getSeverity());
         } catch (Exception e) {
             log.error("Failed to consume alert message", e);
         }

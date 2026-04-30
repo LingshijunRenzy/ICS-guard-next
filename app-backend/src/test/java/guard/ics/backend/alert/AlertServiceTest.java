@@ -4,6 +4,7 @@ import guard.ics.backend.alert.dto.AlertStatsResponse;
 import guard.ics.backend.alert.entity.AlertEntity;
 import guard.ics.backend.alert.repository.AlertRepository;
 import guard.ics.backend.alert.service.AlertService;
+import guard.ics.backend.alert.service.AlertWebSocketService;
 import guard.ics.backend.common.dto.PageDTO;
 import guard.ics.backend.common.exception.BadRequestException;
 import guard.ics.backend.common.exception.ResourceNotFoundException;
@@ -23,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,11 +33,14 @@ class AlertServiceTest {
     @Mock
     private AlertRepository alertRepository;
 
+    @Mock
+    private AlertWebSocketService alertWebSocketService;
+
     private AlertService alertService;
 
     @BeforeEach
     void setUp() {
-        alertService = new AlertService(alertRepository);
+        alertService = new AlertService(alertRepository, alertWebSocketService);
     }
 
     @Test
@@ -79,6 +84,7 @@ class AlertServiceTest {
         var result = alertService.transitionStatus(1L, "acknowledged");
 
         assertThat(result.status()).isEqualTo("acknowledged");
+        verify(alertWebSocketService).broadcastStatusChange(1L, "acknowledged");
     }
 
     @Test
@@ -97,6 +103,7 @@ class AlertServiceTest {
 
         assertThat(result.severity()).isEqualTo("critical");
         assertThat(result.status()).isEqualTo("escalated");
+        verify(alertWebSocketService).broadcastStatusChange(1L, "escalated");
     }
 
     @Test
