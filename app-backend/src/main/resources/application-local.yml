@@ -10,8 +10,6 @@ spring:
     url: jdbc:postgresql://localhost:5432/ics_guard
 
   jpa:
-    hibernate:
-      ddl-auto: update    # 本地开发自动建表
     show-sql: true         # 本地开发打印 SQL
 
   data:
@@ -19,7 +17,7 @@ spring:
       host: localhost
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: localhost:9093
 
 app:
   controller:

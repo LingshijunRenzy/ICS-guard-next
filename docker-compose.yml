@@ -32,7 +32,8 @@ services:
     networks:
       - ics-guard-net
     ports:
-      - "9092:9092"    # Kafka API
+      - "9092:9092"    # Kafka API (internal)
+      - "9093:9093"    # Kafka API (external, for host access)
       - "9644:9644"    # Admin API
     volumes:
       - redpandadata:/var/lib/redpanda/data

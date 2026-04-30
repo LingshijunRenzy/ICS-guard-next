@@ -28,6 +28,12 @@ spring:
         jdbc:
           time_zone: UTC
 
+  # ---- Flyway ----
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    table: flyway_schema_history
+
   # ---- Redis ----
   data:
     redis:
