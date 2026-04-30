@@ -1,0 +1,80 @@
+spring:
+  application:
+    name: app-backend
+
+  # ---- DataSource (PostgreSQL) ----
+  # Docker 环境下由 docker-compose 注入 SPRING_DATASOURCE_URL/USERNAME/PASSWORD
+  # 以下为本地开发时的默认值
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ics_guard}
+    username: ${SPRING_DATASOURCE_USERNAME:icsguard}
+    password: ${SPRING_DATASOURCE_PASSWORD:icsguard-dev}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 10000
+
+  # ---- JPA ----
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  # ---- Redis ----
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 4
+          min-idle: 0
+
+  # ---- Kafka / Redpanda ----
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${spring.application.name}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      max-poll-records: 500
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: 1
+      retries: 3
+
+  # ---- Session ----
+  session:
+    data:
+      redis:
+        namespace: ${spring.application.name}:session
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# ---- App 自定义配置 ----
+app:
+  controller:
+    base-url: ${CONTROLLER_BASE_URL:http://localhost:8000}
+
+# ---- Actuator ----
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized

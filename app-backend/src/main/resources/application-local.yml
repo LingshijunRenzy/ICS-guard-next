@@ -1,0 +1,26 @@
+# 本地开发 profile（宿主机直接启动，非 Docker）
+# 使用方式: java -jar app.jar --spring.profiles.active=local
+# 或在 IDE 中设置 spring.profiles.active=local
+#
+# 前提: docker compose up -d redpanda postgres redis kafka-init
+# 这样基础设施在 Docker 中运行，Backend 在宿主机 IDE 中调试
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ics_guard
+
+  jpa:
+    hibernate:
+      ddl-auto: update    # 本地开发自动建表
+    show-sql: true         # 本地开发打印 SQL
+
+  data:
+    redis:
+      host: localhost
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+app:
+  controller:
+    base-url: http://localhost:8000
