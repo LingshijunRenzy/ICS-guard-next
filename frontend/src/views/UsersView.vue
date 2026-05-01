@@ -2,7 +2,7 @@
   <div class="users-page">
     <div class="page-header">
       <div class="header-title">
-        <el-icon class="header-icon"><User /></el-icon>
+        <el-icon class="header-icon header-icon-success"><User /></el-icon>
         <h2>{{ $t('users.title') }}</h2>
       </div>
       <div class="header-actions">
@@ -11,29 +11,24 @@
       </div>
     </div>
 
-    <el-card shadow="hover" class="table-card">
+    <SkeletonTable v-if="loading && !users.length" :rows="5" :cols="5" />
+    <el-card v-else shadow="hover" class="table-card">
       <template #header>
         <div class="card-header">
-          <span><el-icon><List /></el-icon> {{ $t('users.users') }}</span>
+          <span><el-icon class="card-header-icon-success"><List /></el-icon> {{ $t('users.users') }}</span>
           <span class="header-count">{{ $t('common.total') }}: {{ users.length }}</span>
         </div>
       </template>
       <template v-if="users.length">
-        <el-table :data="users" stripe size="default" class="tech-table">
+        <el-table v-loading="loading" :data="users" stripe size="default" class="tech-table">
           <el-table-column :label="$t('users.username')" width="140">
-            <template #default="{ row }">
-              <span class="user-name">{{ row.username }}</span>
-            </template>
+            <template #default="{ row }"><span class="user-name">{{ row.username }}</span></template>
           </el-table-column>
           <el-table-column :label="$t('users.email')" min-width="180">
-            <template #default="{ row }">
-              <span class="tech-font">{{ row.email ?? $t('common.dash') }}</span>
-            </template>
+            <template #default="{ row }"><span class="tech-font">{{ row.email ?? $t('common.dash') }}</span></template>
           </el-table-column>
           <el-table-column :label="$t('users.displayName')" width="160">
-            <template #default="{ row }">
-              <span class="tech-font">{{ row.displayName ?? $t('common.dash') }}</span>
-            </template>
+            <template #default="{ row }"><span class="tech-font">{{ row.displayName ?? $t('common.dash') }}</span></template>
           </el-table-column>
           <el-table-column :label="$t('users.roles')" width="200">
             <template #default="{ row }">
@@ -45,16 +40,14 @@
             <template #default="{ row }">
               <el-switch
                 :model-value="row.enabled"
+                active-color="var(--color-success)"
+                inactive-color="var(--color-danger)"
                 @change="(val: boolean) => toggleEnabled(row, val)"
-                active-color="#67c23a"
-                inactive-color="#f56c6c"
               />
             </template>
           </el-table-column>
           <el-table-column :label="$t('users.created')" width="170">
-            <template #default="{ row }">
-              <span class="tech-font">{{ fmt(row.createdAt) }}</span>
-            </template>
+            <template #default="{ row }"><span class="tech-font">{{ formatDateTime(row.createdAt) }}</span></template>
           </el-table-column>
           <el-table-column :label="$t('common.actions')" width="140" fixed="right">
             <template #default="{ row }">
@@ -121,6 +114,8 @@ import { get, post, put, del, patch } from '@/api/client'
 import { useI18n } from 'vue-i18n'
 import type { UserResponse, RoleResponse, CreateUserRequest } from '@/api/types'
 import type { FormInstance, FormRules } from 'element-plus'
+import { formatDateTime } from '@/composables/useFormat'
+import SkeletonTable from '@/components/skeleton/SkeletonTable.vue'
 
 const { t } = useI18n()
 const loading = ref(false)
@@ -134,11 +129,7 @@ const editingId = ref<number | null>(null)
 const userFormRef = ref<FormInstance>()
 
 const userForm = reactive<CreateUserRequest & { displayName?: string }>({
-  username: '',
-  password: '',
-  email: '',
-  displayName: '',
-  roleIds: [],
+  username: '', password: '', email: '', displayName: '', roleIds: [],
 })
 
 const userFormRules: FormRules = {
@@ -151,9 +142,7 @@ async function fetchUsers() {
   try {
     const res = await get<UserResponse[]>('/users')
     if (res.code === 200) users.value = res.data
-  } finally {
-    loading.value = false
-  }
+  } finally { loading.value = false }
 }
 
 async function fetchRoles() {
@@ -179,11 +168,7 @@ function resetUserForm() {
   editingId.value = null
 }
 
-function openCreate() {
-  resetUserForm()
-  userDialogVisible.value = true
-}
-
+function openCreate() { resetUserForm(); userDialogVisible.value = true }
 function openEdit(row: UserResponse) {
   editingId.value = row.id
   userForm.username = row.username
@@ -199,9 +184,7 @@ async function handleSaveUser() {
   if (!valid) return
   saving.value = true
   try {
-    const payload: Record<string, any> = {
-      username: userForm.username,
-    }
+    const payload: Record<string, any> = { username: userForm.username }
     if (userForm.password) payload.password = userForm.password
     if (userForm.email) payload.email = userForm.email
     if (userForm.displayName) payload.displayName = userForm.displayName
@@ -214,58 +197,22 @@ async function handleSaveUser() {
     }
     userDialogVisible.value = false
     fetchUsers()
-  } finally {
-    saving.value = false
-  }
+  } finally { saving.value = false }
 }
 
 async function handleDelete(id: number) {
-  try {
-    await del(`/users/${id}`)
-    fetchUsers()
-  } catch { /* handled */ }
+  try { await del(`/users/${id}`); fetchUsers() } catch { /* handled */ }
 }
 
-function openRoleDialog() {
-  fetchRoles()
-  roleDialogVisible.value = true
-}
-
-function fmt(iso: string): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleString('en-CA', { hour12: false })
-}
+function openRoleDialog() { fetchRoles(); roleDialogVisible.value = true }
 
 onMounted(() => { fetchUsers(); fetchRoles() })
 </script>
 
 <style scoped>
 .users-page { padding: 0; }
-.page-header {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;
-}
-.header-title { display: flex; align-items: center; gap: 12px; }
-.header-title h2 { margin: 0; font-size: 22px; font-weight: 600; color: #2c3e50; letter-spacing: 0.5px; }
-.header-icon {
-  font-size: 28px; color: #67c23a; background: rgba(103, 194, 58, 0.1); padding: 8px; border-radius: 8px;
-}
-.header-actions { display: flex; gap: 12px; }
 
-.table-card { border-radius: 12px; border: none; }
-.card-header { display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 16px; color: #303133; }
-.card-header > :first-child { display: flex; align-items: center; gap: 8px; }
-.card-header .el-icon { color: #67c23a; font-size: 18px; }
-.header-count { font-size: 13px; color: #909399; font-weight: 400; }
+.header-icon-success { color: var(--color-success); background: var(--color-success-light); }
 
-.tech-table { border-radius: 8px; overflow: hidden; }
-.tech-font { font-weight: 500; color: #606266; font-size: 13px; }
-.user-name { font-weight: 600; color: #303133; }
-
-.role-item { padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-.role-item:last-child { border-bottom: none; }
-.role-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
-.role-name { font-weight: 600; color: #303133; font-size: 15px; }
-.role-desc { font-size: 13px; color: #909399; }
-.role-perms { display: flex; flex-wrap: wrap; gap: 6px; }
-.perm-tag { font-size: 11px; }
+.card-header-icon-success { color: var(--color-success); font-size: 18px; }
 </style>

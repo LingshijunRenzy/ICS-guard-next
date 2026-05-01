@@ -1,0 +1,64 @@
+:root {
+  /* Brand */
+  --color-primary: #409eff;
+  --color-primary-light: rgba(64, 158, 255, 0.1);
+  --color-primary-dark: #337ecc;
+
+  /* Severity / Semantic */
+  --color-danger: #f56c6c;
+  --color-danger-light: rgba(245, 108, 108, 0.1);
+  --color-warning: #e6a23c;
+  --color-warning-light: rgba(230, 162, 60, 0.1);
+  --color-success: #67c23a;
+  --color-success-light: rgba(103, 194, 58, 0.1);
+  --color-info: #909399;
+  --color-info-light: rgba(144, 147, 153, 0.1);
+
+  /* Text */
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #8c939d;
+  --text-placeholder: #c0c4cc;
+  --text-heading: #2c3e50;
+
+  /* Background */
+  --bg-page: #f0f2f5;
+  --bg-card: #ffffff;
+  --bg-login: #f5f7fa;
+  --bg-sidebar-from: #051328;
+  --bg-sidebar-to: #0b1a37;
+
+  /* Border / Divider */
+  --border-light: #f0f0f0;
+  --border-ghost: rgba(255, 255, 255, 0.05);
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-icon: 14px;
+
+  /* Shadow */
+  --shadow-card: 0 1px 4px rgba(0, 21, 41, 0.08);
+  --shadow-sidebar: 2px 0 8px 0 rgba(0, 0, 0, 0.15);
+  --shadow-button: 0 4px 12px rgba(64, 158, 255, 0.3);
+  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.1);
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+
+  /* Typography */
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  --font-sans: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+
+  /* Transitions */
+  --transition-fast: 0.3s;
+  --transition-medium: 0.5s;
+}

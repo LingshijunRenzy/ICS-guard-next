@@ -12,7 +12,7 @@
           <el-input v-model="form.password" type="password" :placeholder="$t('login.passwordPlaceholder')" show-password />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" native-type="submit" :loading="auth.loading" style="width: 100%">
+          <el-button type="primary" native-type="submit" :loading="auth.loading" class="login-btn">
             {{ $t('login.loginBtn') }}
           </el-button>
         </el-form-item>
@@ -35,10 +35,7 @@ const auth = useAuthStore()
 const formRef = ref<FormInstance>()
 const error = ref('')
 
-const form = reactive({
-  username: '',
-  password: '',
-})
+const form = reactive({ username: '', password: '' })
 
 const rules: FormRules = {
   username: [{ required: true, message: t('login.usernameRequired'), trigger: 'blur' }],
@@ -48,7 +45,6 @@ const rules: FormRules = {
 async function handleLogin() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
-
   error.value = ''
   const res = await auth.login({ username: form.username, password: form.password })
   if (res.code === 200) {
@@ -65,18 +61,25 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f7fa;
+  background: var(--bg-login);
 }
+
 .login-card {
   width: 400px;
 }
+
 .login-title {
   text-align: center;
   margin: 0;
   letter-spacing: 2px;
 }
+
+.login-btn {
+  width: 100%;
+}
+
 .error-msg {
-  color: #f56c6c;
+  color: var(--color-danger);
   text-align: center;
   margin: 0;
 }

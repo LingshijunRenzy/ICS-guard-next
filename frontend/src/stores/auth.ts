@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { post, get } from '@/api/client'
 import type { LoginRequest, UserResponse } from '@/api/types'
+import { applyServerLanguage } from '@/locales'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserResponse | null>(null)
@@ -17,6 +18,7 @@ export const useAuthStore = defineStore('auth', () => {
       const res = await post<UserResponse>('/auth/login', credentials)
       if (res.code === 200) {
         user.value = res.data
+        applyServerLanguage(res.data.profile?.language)
       }
       return res
     } finally {
@@ -34,6 +36,7 @@ export const useAuthStore = defineStore('auth', () => {
       const res = await get<UserResponse>('/auth/me')
       if (res.code === 200) {
         user.value = res.data
+        applyServerLanguage(res.data.profile?.language)
       }
     } catch {
       user.value = null

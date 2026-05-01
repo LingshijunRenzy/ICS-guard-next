@@ -2,7 +2,7 @@
   <div class="alerts-page">
     <div class="page-header">
       <div class="header-title">
-        <el-icon class="header-icon"><Bell /></el-icon>
+        <el-icon class="header-icon header-icon-warning"><Bell /></el-icon>
         <h2>{{ $t('alerts.title') }}</h2>
       </div>
       <el-button type="primary" :icon="Refresh" :loading="loading" @click="fetchAll">
@@ -12,11 +12,10 @@
 
     <el-row :gutter="24" class="stat-row">
       <el-col :span="6">
-        <el-card shadow="hover" class="stat-card total-card">
+        <SkeletonCard v-if="loading" />
+        <el-card v-else shadow="hover" class="stat-card">
           <div class="stat-content">
-            <div class="stat-icon-wrapper primary-bg">
-              <el-icon><WarningFilled /></el-icon>
-            </div>
+            <div class="stat-icon-wrapper primary-bg"><el-icon><WarningFilled /></el-icon></div>
             <div class="stat-info">
               <div class="stat-title">{{ $t('alerts.totalAlerts') }}</div>
               <div class="stat-value primary-text">{{ stats.total }}</div>
@@ -25,11 +24,10 @@
         </el-card>
       </el-col>
       <el-col :span="9">
-        <el-card shadow="hover" class="stat-card">
+        <SkeletonCard v-if="loading" />
+        <el-card v-else shadow="hover" class="stat-card">
           <div class="stat-content">
-            <div class="stat-icon-wrapper danger-bg">
-              <el-icon><PieChart /></el-icon>
-            </div>
+            <div class="stat-icon-wrapper danger-bg"><el-icon><PieChart /></el-icon></div>
             <div class="stat-info wide">
               <div class="stat-title">{{ $t('alerts.severitySummary') }}</div>
               <div class="stat-value-group">
@@ -44,11 +42,10 @@
         </el-card>
       </el-col>
       <el-col :span="9">
-        <el-card shadow="hover" class="stat-card">
+        <SkeletonCard v-if="loading" />
+        <el-card v-else shadow="hover" class="stat-card">
           <div class="stat-content">
-            <div class="stat-icon-wrapper success-bg">
-              <el-icon><List /></el-icon>
-            </div>
+            <div class="stat-icon-wrapper success-bg"><el-icon><List /></el-icon></div>
             <div class="stat-info wide">
               <div class="stat-title">{{ $t('alerts.statusSummary') }}</div>
               <div class="stat-value-group">
@@ -94,34 +91,29 @@
       </el-form>
     </el-card>
 
-    <el-card shadow="hover" class="table-card">
+    <SkeletonTable v-if="loading && !alerts.length" :rows="5" :cols="7" />
+    <el-card v-else shadow="hover" class="table-card">
       <template #header>
         <div class="card-header">
-          <span><el-icon><Warning /></el-icon> {{ $t('alerts.alertList') }}</span>
+          <span><el-icon class="card-header-icon-warning"><Warning /></el-icon> {{ $t('alerts.alertList') }}</span>
           <span class="header-count">{{ $t('common.total') }}: {{ page.totalElements }}</span>
         </div>
       </template>
       <template v-if="alerts.length">
-        <el-table :data="alerts" stripe size="default" class="tech-table">
+        <el-table v-loading="loading" :data="alerts" stripe size="default" class="tech-table">
           <el-table-column :label="$t('alerts.severity')" width="110">
             <template #default="{ row }">
               <el-tag :type="severityTag(row.severity)" size="small" effect="dark">{{ $t(`severity.${row.severity}`, row.severity.toUpperCase()) }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column :label="$t('alerts.alertType')" width="150">
-            <template #default="{ row }">
-              <span class="tech-font mono">{{ row.alertType }}</span>
-            </template>
+            <template #default="{ row }"><span class="tech-font mono">{{ row.alertType }}</span></template>
           </el-table-column>
           <el-table-column :label="$t('dashboard.sourceIp')" width="160">
-            <template #default="{ row }">
-              <span class="tech-font mono">{{ row.sourceIp }}</span>
-            </template>
+            <template #default="{ row }"><span class="tech-font mono">{{ row.sourceIp }}</span></template>
           </el-table-column>
           <el-table-column :label="$t('dashboard.destIp')" width="160">
-            <template #default="{ row }">
-              <span class="tech-font mono">{{ row.destIp }}</span>
-            </template>
+            <template #default="{ row }"><span class="tech-font mono">{{ row.destIp }}</span></template>
           </el-table-column>
           <el-table-column :label="$t('dashboard.protocol')" width="80" />
           <el-table-column :label="$t('dashboard.description')" min-width="200" show-overflow-tooltip />
@@ -131,9 +123,7 @@
             </template>
           </el-table-column>
           <el-table-column :label="$t('dashboard.triggeredAt')" width="180">
-            <template #default="{ row }">
-              <span class="tech-font">{{ fmt(row.triggeredAt) }}</span>
-            </template>
+            <template #default="{ row }"><span class="tech-font">{{ formatDateTime(row.triggeredAt) }}</span></template>
           </el-table-column>
           <el-table-column :label="$t('common.actions')" width="200" fixed="right">
             <template #default="{ row }">
@@ -174,6 +164,10 @@ import { onMounted, reactive, ref } from 'vue'
 import { Bell, Refresh, WarningFilled, PieChart, List, Warning, ArrowDown } from '@element-plus/icons-vue'
 import { get, patch, post } from '@/api/client'
 import type { AlertResponse, AlertStatsResponse, PageDTO } from '@/api/types'
+import { formatDateTime } from '@/composables/useFormat'
+import { severityTag, statusTag } from '@/composables/useSeverity'
+import SkeletonCard from '@/components/skeleton/SkeletonCard.vue'
+import SkeletonTable from '@/components/skeleton/SkeletonTable.vue'
 
 const loading = ref(false)
 const alerts = ref<AlertResponse[]>([])
@@ -183,11 +177,7 @@ const page = reactive<PageDTO<AlertResponse>>({ content: [], page: 1, size: 10, 
 
 const stats = reactive<AlertStatsResponse>({ bySeverity: {}, byStatus: {}, total: 0 })
 
-const filters = reactive({
-  severity: '',
-  status: '',
-  alertType: '',
-})
+const filters = reactive({ severity: '', status: '', alertType: '' })
 
 async function fetchStats() {
   try {
@@ -203,7 +193,6 @@ async function fetchList(p: number) {
     if (filters.severity) params.severity = filters.severity
     if (filters.status) params.status = filters.status
     if (filters.alertType) params.alertType = filters.alertType
-
     const res = await get<PageDTO<AlertResponse>>('/alerts', params)
     if (res.code === 200) {
       Object.assign(page, res.data)
@@ -240,71 +229,13 @@ function fetchAll() {
   fetchList(pageNum.value)
 }
 
-function severityTag(sev: string): 'danger' | 'warning' | 'info' | '' {
-  if (sev === 'critical') return 'danger'
-  if (sev === 'high') return 'warning'
-  return 'info'
-}
-
-function statusTag(st: string): 'success' | 'warning' | 'danger' | 'info' | '' {
-  if (st === 'resolved') return 'success'
-  if (st === 'acknowledged') return 'warning'
-  if (st === 'escalated') return 'danger'
-  return 'info'
-}
-
-function fmt(iso: string): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleString('en-CA', { hour12: false })
-}
-
 onMounted(fetchAll)
 </script>
 
 <style scoped>
 .alerts-page { padding: 0; }
-.page-header {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;
-}
-.header-title { display: flex; align-items: center; gap: 12px; }
-.header-title h2 { margin: 0; font-size: 22px; font-weight: 600; color: #2c3e50; letter-spacing: 0.5px; }
-.header-icon {
-  font-size: 28px; color: #e6a23c; background: rgba(230, 162, 60, 0.1); padding: 8px; border-radius: 8px;
-}
 
-.stat-row { margin-bottom: 24px; }
-.stat-card { border-radius: 12px; border: none; transition: transform 0.3s; }
-.stat-card:hover { transform: translateY(-4px); }
-.stat-content { display: flex; align-items: center; gap: 16px; padding: 8px 4px; }
-.stat-icon-wrapper {
-  width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center;
-  justify-content: center; font-size: 28px;
-}
-.danger-bg { background: rgba(245, 108, 108, 0.1); color: #f56c6c; }
-.success-bg { background: rgba(103, 194, 58, 0.1); color: #67c23a; }
-.primary-bg { background: rgba(64, 158, 255, 0.1); color: #409eff; }
-.stat-info { flex: 1; }
-.stat-info.wide { flex: 1; }
-.stat-title { font-size: 14px; color: #8c939d; margin-bottom: 4px; font-weight: 500; }
-.stat-value { font-size: 28px; font-weight: 700; line-height: 1.2; }
-.primary-text { color: #409eff; }
+.header-icon-warning { color: var(--color-warning); background: var(--color-warning-light); }
 
-.stat-value-group { display: flex; align-items: baseline; gap: 4px; font-size: 22px; font-weight: 700; }
-.sv-danger { color: #f56c6c; }
-.sv-warning { color: #e6a23c; }
-.sv-info { color: #909399; }
-.sv-success { color: #67c23a; }
-.sv-sep { color: #c0c4cc; font-weight: 400; font-size: 16px; }
-
-.filter-card { border-radius: 12px; border: none; margin-bottom: 24px; }
-.table-card { border-radius: 12px; border: none; }
-.card-header { display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 16px; color: #303133; }
-.card-header > :first-child { display: flex; align-items: center; gap: 8px; }
-.card-header .el-icon { color: #e6a23c; font-size: 18px; }
-.header-count { font-size: 13px; color: #909399; font-weight: 400; }
-
-.tech-table { border-radius: 8px; overflow: hidden; }
-.tech-font { font-weight: 500; color: #606266; font-size: 13px; }
-.mono { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; color: #409eff; }
-.pagination-wrap { display: flex; justify-content: flex-end; margin-top: 16px; }
+.card-header-icon-warning { color: var(--color-warning); font-size: 18px; }
 </style>

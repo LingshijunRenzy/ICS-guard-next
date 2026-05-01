@@ -2,7 +2,7 @@
   <el-container class="app-container">
     <el-aside width="240px" class="sidebar">
       <div class="logo">
-        <span class="logo-icon"></span>
+        <span class="logo-icon" />
         <span class="logo-text">{{ $t('common.appName') }}</span>
       </div>
       <el-menu
@@ -54,7 +54,7 @@
           <span class="campus-title">{{ $t('common.campusTitle') }}</span>
         </div>
         <div class="header-right">
-          <el-button link @click="toggleLang" class="lang-btn">{{ $t('langSwitch') }}</el-button>
+          <el-button link class="lang-btn" @click="toggleLang">{{ $t('langSwitch') }}</el-button>
           <el-divider direction="vertical" />
           <el-avatar :size="32" class="user-avatar">{{ auth.username?.charAt(0).toUpperCase() }}</el-avatar>
           <span class="greeting">{{ auth.username }}</span>
@@ -76,7 +76,8 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { toggleLocale } from '@/locales'
+import { toggleLocale, currentLocale } from '@/locales'
+import { patch } from '@/api/client'
 import { Odometer, Bell, Setting, Share, Connection, Document, User, Monitor } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -85,6 +86,9 @@ const auth = useAuthStore()
 
 function toggleLang() {
   toggleLocale()
+  if (auth.isAuthenticated) {
+    patch('/auth/profile', { language: currentLocale() }).catch(() => {})
+  }
 }
 
 async function handleLogout() {
@@ -97,60 +101,69 @@ async function handleLogout() {
 .app-container {
   height: 100vh;
 }
+
 .sidebar {
-  background: linear-gradient(180deg, #051328 0%, #0b1a37 100%);
-  box-shadow: 2px 0 8px 0 rgba(0, 0, 0, 0.15);
+  background: linear-gradient(180deg, var(--bg-sidebar-from) 0%, var(--bg-sidebar-to) 100%);
+  box-shadow: var(--shadow-sidebar);
   overflow-y: auto;
   z-index: 10;
   display: flex;
   flex-direction: column;
 }
+
 .logo {
   height: 64px;
   display: flex;
   align-items: center;
-  padding: 0 24px;
+  padding: 0 var(--space-xl);
   color: #fff;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-ghost);
 }
+
 .logo-icon {
   width: 12px;
   height: 12px;
-  background: #409eff;
+  background: var(--color-primary);
   border-radius: 50%;
-  margin-right: 12px;
-  box-shadow: 0 0 10px #409eff, 0 0 20px #409eff;
+  margin-right: var(--space-md);
+  box-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
   animation: pulse 2s infinite;
 }
+
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(64, 158, 255, 0.7); }
   70% { box-shadow: 0 0 0 6px rgba(64, 158, 255, 0); }
   100% { box-shadow: 0 0 0 0 rgba(64, 158, 255, 0); }
 }
+
 .logo-text {
   font-size: 20px;
   font-weight: 600;
   letter-spacing: 1.5px;
-  background: linear-gradient(90deg, #fff, #409eff);
+  background: linear-gradient(90deg, #fff, var(--color-primary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
 .custom-menu {
   border-right: none;
   flex: 1;
-  margin-top: 16px;
+  margin-top: var(--space-lg);
 }
+
 .custom-menu .el-menu-item {
   height: 50px;
   line-height: 50px;
-  margin: 4px 12px;
-  border-radius: 6px;
+  margin: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-md);
 }
+
 .custom-menu .el-menu-item.is-active {
   background: rgba(64, 158, 255, 0.15) !important;
-  color: #409eff !important;
+  color: var(--color-primary) !important;
   font-weight: 500;
 }
+
 .custom-menu .el-menu-item:hover {
   background: rgba(255, 255, 255, 0.05) !important;
 }
@@ -159,52 +172,60 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
-  padding: 0 24px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  padding: 0 var(--space-xl);
   height: 64px;
   z-index: 5;
 }
+
 .header-left .campus-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2f3d;
+  color: var(--text-heading);
   letter-spacing: 0.5px;
 }
+
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
 }
+
 .lang-btn {
-  color: #409eff;
+  color: var(--color-primary);
   font-weight: 500;
   font-size: 13px;
 }
+
 .user-avatar {
-  background-color: #409eff;
+  background-color: var(--color-primary);
   color: #fff;
   font-weight: bold;
 }
+
 .greeting {
-  color: #606266;
+  color: var(--text-regular);
   font-weight: 500;
 }
+
 .content {
-  background: #f0f2f5;
-  padding: 24px;
+  background: var(--bg-page);
+  padding: var(--space-xl);
   min-height: 0;
   box-sizing: border-box;
 }
 
 .fade-transform-enter-active,
 .fade-transform-leave-active {
-  transition: all 0.3s;
+  transition: all var(--transition-fast);
 }
+
 .fade-transform-enter-from {
   opacity: 0;
   transform: translateX(-20px);
 }
+
 .fade-transform-leave-to {
   opacity: 0;
   transform: translateX(20px);

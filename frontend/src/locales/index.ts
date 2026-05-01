@@ -14,8 +14,20 @@ export const i18n = createI18n({
 
 export function toggleLocale() {
   const next = i18n.global.locale.value === 'zh' ? 'en' : 'zh'
-  i18n.global.locale.value = next
-  localStorage.setItem('ics-lang', next)
+  setLocale(next)
+}
+
+export function setLocale(lang: string) {
+  if (lang !== 'zh' && lang !== 'en') return
+  i18n.global.locale.value = lang
+  localStorage.setItem('ics-lang', lang)
+}
+
+export function applyServerLanguage(profileLang: string | null | undefined) {
+  if (!profileLang || (profileLang !== 'zh' && profileLang !== 'en')) return
+  if (profileLang !== i18n.global.locale.value) {
+    setLocale(profileLang)
+  }
 }
 
 export const currentLocale = () => i18n.global.locale.value

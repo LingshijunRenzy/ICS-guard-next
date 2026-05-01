@@ -2,7 +2,7 @@
   <div class="rules-page">
     <div class="page-header">
       <div class="header-title">
-        <el-icon class="header-icon"><Setting /></el-icon>
+        <el-icon class="header-icon header-icon-primary"><Setting /></el-icon>
         <h2>{{ $t('rules.title') }}</h2>
       </div>
       <el-button type="primary" :icon="Plus" @click="openCreate">{{ $t('rules.newRule') }}</el-button>
@@ -33,29 +33,24 @@
       </el-form>
     </el-card>
 
-    <el-card shadow="hover" class="table-card">
+    <SkeletonTable v-if="loading && !rules.length" :rows="5" :cols="6" />
+    <el-card v-else shadow="hover" class="table-card">
       <template #header>
         <div class="card-header">
-          <span><el-icon><Setting /></el-icon> {{ $t('rules.ruleList') }}</span>
+          <span><el-icon class="card-header-icon-primary"><Setting /></el-icon> {{ $t('rules.ruleList') }}</span>
           <span class="header-count">{{ $t('common.total') }}: {{ page.totalElements }}</span>
         </div>
       </template>
       <template v-if="rules.length">
-        <el-table :data="rules" stripe size="default" class="tech-table">
+        <el-table v-loading="loading" :data="rules" stripe size="default" class="tech-table">
           <el-table-column :label="$t('rules.name')" min-width="160">
-            <template #default="{ row }">
-              <span class="rule-name">{{ row.name }}</span>
-            </template>
+            <template #default="{ row }"><span class="rule-name">{{ row.name }}</span></template>
           </el-table-column>
           <el-table-column :label="$t('rules.type')" width="120">
-            <template #default="{ row }">
-              <span class="tech-font mono">{{ $t(`ruleType.${row.ruleType}`, row.ruleType) }}</span>
-            </template>
+            <template #default="{ row }"><span class="tech-font mono">{{ $t(`ruleType.${row.ruleType}`, row.ruleType) }}</span></template>
           </el-table-column>
           <el-table-column :label="$t('rules.target')" width="160">
-            <template #default="{ row }">
-              <span class="tech-font mono">{{ row.target ?? $t('common.dash') }}</span>
-            </template>
+            <template #default="{ row }"><span class="tech-font mono">{{ row.target ?? $t('common.dash') }}</span></template>
           </el-table-column>
           <el-table-column :label="$t('rules.action')" width="110">
             <template #default="{ row }">
@@ -67,16 +62,14 @@
             <template #default="{ row }">
               <el-switch
                 :model-value="row.enabled"
+                active-color="var(--color-success)"
+                inactive-color="var(--color-danger)"
                 @change="(val: boolean) => toggleEnabled(row, val)"
-                active-color="#67c23a"
-                inactive-color="#f56c6c"
               />
             </template>
           </el-table-column>
           <el-table-column :label="$t('rules.created')" width="170">
-            <template #default="{ row }">
-              <span class="tech-font">{{ fmt(row.createdAt) }}</span>
-            </template>
+            <template #default="{ row }"><span class="tech-font">{{ formatDateTime(row.createdAt) }}</span></template>
           </el-table-column>
           <el-table-column :label="$t('common.actions')" width="180" fixed="right">
             <template #default="{ row }">
@@ -151,11 +144,14 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { Setting, Plus, Refresh } from '@element-plus/icons-vue'
+import { Setting, Plus } from '@element-plus/icons-vue'
 import { get, post, put, del, patch } from '@/api/client'
 import type { RuleResponse, RuleRequest, PageDTO } from '@/api/types'
 import { useI18n } from 'vue-i18n'
 import type { FormInstance, FormRules } from 'element-plus'
+import { formatDateTime } from '@/composables/useFormat'
+import { actionTag } from '@/composables/useSeverity'
+import SkeletonTable from '@/components/skeleton/SkeletonTable.vue'
 
 const { t } = useI18n()
 const loading = ref(false)
@@ -169,14 +165,7 @@ const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const formRef = ref<FormInstance>()
 const form = reactive<RuleRequest>({
-  name: '',
-  description: '',
-  ruleType: '',
-  target: '',
-  action: '',
-  priority: 0,
-  enabled: true,
-  ruleConfig: '',
+  name: '', description: '', ruleType: '', target: '', action: '', priority: 0, enabled: true, ruleConfig: '',
 })
 
 const formRules: FormRules = {
@@ -185,11 +174,7 @@ const formRules: FormRules = {
   action: [{ required: true, message: t('rules.actionRequired'), trigger: 'change' }],
 }
 
-const filters = reactive({
-  ruleType: '',
-  search: '',
-  enabled: undefined as boolean | undefined,
-})
+const filters = reactive({ ruleType: '', search: '', enabled: undefined as boolean | undefined })
 
 async function fetchList(p: number) {
   loading.value = true
@@ -198,7 +183,6 @@ async function fetchList(p: number) {
     if (filters.ruleType) params.ruleType = filters.ruleType
     if (filters.search) params.search = filters.search
     if (filters.enabled !== undefined && filters.enabled !== null) params.enabled = filters.enabled
-
     const res = await get<PageDTO<RuleResponse>>('/rules', params)
     if (res.code === 200) {
       Object.assign(page, res.data)
@@ -229,11 +213,7 @@ function resetForm() {
   editingId.value = null
 }
 
-function openCreate() {
-  resetForm()
-  dialogVisible.value = true
-}
-
+function openCreate() { resetForm(); dialogVisible.value = true }
 function openEdit(row: RuleResponse) {
   editingId.value = row.id
   form.name = row.name
@@ -259,16 +239,11 @@ async function handleSave() {
     }
     dialogVisible.value = false
     fetchList(pageNum.value)
-  } finally {
-    saving.value = false
-  }
+  } finally { saving.value = false }
 }
 
 async function handleDelete(id: number) {
-  try {
-    await del(`/rules/${id}`)
-    fetchList(pageNum.value)
-  } catch { /* handled */ }
+  try { await del(`/rules/${id}`); fetchList(pageNum.value) } catch { /* handled */ }
 }
 
 function resetFilters() {
@@ -278,41 +253,13 @@ function resetFilters() {
   fetchList(1)
 }
 
-function actionTag(a: string): 'danger' | 'warning' | 'info' {
-  if (a === 'block') return 'danger'
-  if (a === 'alert') return 'warning'
-  return 'info'
-}
-
-function fmt(iso: string): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleString('en-CA', { hour12: false })
-}
-
 onMounted(() => fetchList(1))
 </script>
 
 <style scoped>
 .rules-page { padding: 0; }
-.page-header {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;
-}
-.header-title { display: flex; align-items: center; gap: 12px; }
-.header-title h2 { margin: 0; font-size: 22px; font-weight: 600; color: #2c3e50; letter-spacing: 0.5px; }
-.header-icon {
-  font-size: 28px; color: #409eff; background: rgba(64, 158, 255, 0.1); padding: 8px; border-radius: 8px;
-}
 
-.filter-card { border-radius: 12px; border: none; margin-bottom: 24px; }
-.table-card { border-radius: 12px; border: none; }
-.card-header { display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 16px; color: #303133; }
-.card-header > :first-child { display: flex; align-items: center; gap: 8px; }
-.card-header .el-icon { color: #409eff; font-size: 18px; }
-.header-count { font-size: 13px; color: #909399; font-weight: 400; }
+.header-icon-primary { color: var(--color-primary); background: var(--color-primary-light); }
 
-.tech-table { border-radius: 8px; overflow: hidden; }
-.tech-font { font-weight: 500; color: #606266; font-size: 13px; }
-.mono { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; color: #409eff; }
-.rule-name { font-weight: 600; color: #303133; }
-.pagination-wrap { display: flex; justify-content: flex-end; margin-top: 16px; }
+.card-header-icon-primary { color: var(--color-primary); font-size: 18px; }
 </style>

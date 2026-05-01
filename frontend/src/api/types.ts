@@ -28,6 +28,19 @@ export interface UserResponse {
   roles: string[]
   createdAt: string
   updatedAt: string
+  profile: UserProfileResponse | null
+}
+
+export interface UserProfileResponse {
+  language: string
+  timezone: string
+  theme: string
+}
+
+export interface UpdateProfileRequest {
+  language?: string
+  timezone?: string
+  theme?: string
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────
