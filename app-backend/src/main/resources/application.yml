@@ -6,7 +6,7 @@ spring:
   # Docker 环境下由 docker-compose 注入 SPRING_DATASOURCE_URL/USERNAME/PASSWORD
   # 以下为本地开发时的默认值
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ics_guard}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/ics_guard}
     username: ${SPRING_DATASOURCE_USERNAME:icsguard}
     password: ${SPRING_DATASOURCE_PASSWORD:icsguard-dev}
     driver-class-name: org.postgresql.Driver
@@ -37,7 +37,7 @@ spring:
   # ---- Redis ----
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      host: ${SPRING_DATA_REDIS_HOST:127.0.0.1}
       port: ${SPRING_DATA_REDIS_PORT:6379}
       timeout: 5000ms
       lettuce:
@@ -48,7 +48,7 @@ spring:
 
   # ---- Kafka / Redpanda ----
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:9092}
     consumer:
       group-id: ${spring.application.name}
       auto-offset-reset: earliest
@@ -73,7 +73,9 @@ server:
 # ---- App 自定义配置 ----
 app:
   controller:
-    base-url: ${CONTROLLER_BASE_URL:http://localhost:8000}
+    base-url: ${CONTROLLER_BASE_URL:http://127.0.0.1:8000}
+  error:
+    include-details: false
 
 # ---- Actuator ----
 management:

@@ -9,6 +9,7 @@ import guard.ics.backend.rbac.dto.UserResponse;
 import guard.ics.backend.rbac.entity.RoleEntity;
 import guard.ics.backend.rbac.entity.UserEntity;
 import guard.ics.backend.rbac.repository.RoleRepository;
+import guard.ics.backend.rbac.repository.UserProfileRepository;
 import guard.ics.backend.rbac.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +39,9 @@ class UserServiceTest {
 
     @Mock
     private RoleRepository roleRepository;
+
+    @Mock
+    private UserProfileRepository profileRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;

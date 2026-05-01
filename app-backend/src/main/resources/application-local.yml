@@ -7,18 +7,20 @@
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/ics_guard
+    url: jdbc:postgresql://127.0.0.1:5432/ics_guard
 
   jpa:
     show-sql: true         # 本地开发打印 SQL
 
   data:
     redis:
-      host: localhost
+      host: 127.0.0.1
 
   kafka:
-    bootstrap-servers: localhost:9093
+    bootstrap-servers: 127.0.0.1:9093
 
 app:
   controller:
-    base-url: http://localhost:8000
+    base-url: http://127.0.0.1:8000
+  error:
+    include-details: true    # 本地开发返回内部错误详情

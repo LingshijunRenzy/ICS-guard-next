@@ -2,15 +2,14 @@ package guard.ics.backend.rbac.controller;
 
 import guard.ics.backend.common.dto.ApiResponse;
 import guard.ics.backend.rbac.dto.LoginRequest;
+import guard.ics.backend.rbac.dto.UpdateProfileRequest;
+import guard.ics.backend.rbac.dto.UserProfileResponse;
 import guard.ics.backend.rbac.dto.UserResponse;
 import guard.ics.backend.rbac.entity.UserEntity;
 import guard.ics.backend.rbac.repository.UserRepository;
 import guard.ics.backend.rbac.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -19,9 +18,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -49,10 +45,7 @@ public class AuthController {
         HttpSession session = req.getSession(true);
         session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
         UserEntity user = userRepository.findByUsername(request.username()).orElseThrow();
-        Set<String> roles = user.getRoles().stream()
-                .map(r -> r.getName()).collect(Collectors.toSet());
-        return ApiResponse.success(new UserResponse(user.getId(), user.getUsername(), user.getEmail(),
-                user.getDisplayName(), user.isEnabled(), roles, user.getCreatedAt(), user.getUpdatedAt()));
+        return ApiResponse.success(userService.getById(user.getId()));
     }
 
     @Operation(summary = "Invalidate current session")
@@ -71,5 +64,14 @@ public class AuthController {
         if (auth == null || !auth.isAuthenticated()) return ApiResponse.error(401, "Not authenticated");
         UserEntity user = userRepository.findByUsername(auth.getName()).orElseThrow();
         return ApiResponse.success(userService.getById(user.getId()));
+    }
+
+    @Operation(summary = "Update current user profile preferences")
+    @PatchMapping("/profile")
+    public ApiResponse<UserProfileResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return ApiResponse.error(401, "Not authenticated");
+        UserEntity user = userRepository.findByUsername(auth.getName()).orElseThrow();
+        return ApiResponse.success(userService.updateProfile(user.getId(), request));
     }
 }

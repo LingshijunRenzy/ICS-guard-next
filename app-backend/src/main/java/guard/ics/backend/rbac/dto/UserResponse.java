@@ -14,5 +14,6 @@ public record UserResponse(
         @Schema(description = "Whether the account is enabled") boolean enabled,
         @Schema(description = "Assigned role names") Set<String> roles,
         @Schema(description = "Account creation time") Instant createdAt,
-        @Schema(description = "Last update time") Instant updatedAt
+        @Schema(description = "Last update time") Instant updatedAt,
+        @Schema(description = "User preference profile") UserProfileResponse profile
 ) {}

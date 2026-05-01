@@ -1,6 +1,7 @@
 package guard.ics.backend.common.exception;
 
 import guard.ics.backend.common.dto.ApiResponse;
+import guard.ics.backend.config.AppProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +20,12 @@ import java.util.List;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    private final AppProperties appProperties;
+
+    public GlobalExceptionHandler(AppProperties appProperties) {
+        this.appProperties = appProperties;
+    }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException ex, HttpServletRequest req) {
@@ -57,9 +64,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception ex, HttpServletRequest req) {
         log.error("Unhandled exception {} {}", req.getMethod(), req.getRequestURI(), ex);
+        String msg = appProperties.error().includeDetails()
+                ? "Internal server error: " + ex.toString()
+                : "Internal server error";
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "Internal server error"));
+                .body(ApiResponse.error(500, msg));
     }
 
     public record FieldErrorData(String field, String message) {}

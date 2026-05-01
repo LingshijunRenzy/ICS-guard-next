@@ -5,10 +5,14 @@ import guard.ics.backend.common.exception.BadRequestException;
 import guard.ics.backend.common.exception.ConflictException;
 import guard.ics.backend.common.exception.ResourceNotFoundException;
 import guard.ics.backend.rbac.dto.CreateUserRequest;
+import guard.ics.backend.rbac.dto.UpdateProfileRequest;
+import guard.ics.backend.rbac.dto.UserProfileResponse;
 import guard.ics.backend.rbac.dto.UserResponse;
 import guard.ics.backend.rbac.entity.RoleEntity;
 import guard.ics.backend.rbac.entity.UserEntity;
+import guard.ics.backend.rbac.entity.UserProfileEntity;
 import guard.ics.backend.rbac.repository.RoleRepository;
+import guard.ics.backend.rbac.repository.UserProfileRepository;
 import guard.ics.backend.rbac.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,11 +29,14 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final UserProfileRepository profileRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository,
+                       UserProfileRepository profileRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.profileRepository = profileRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -102,12 +109,29 @@ public class UserService {
         return toResponse(userRepository.save(user));
     }
 
+    @Transactional
+    public UserProfileResponse updateProfile(Long userId, UpdateProfileRequest request) {
+        UserProfileEntity profile = profileRepository.findById(userId)
+                .orElseGet(() -> {
+                    UserEntity user = userRepository.findById(userId)
+                            .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+                    return UserProfileEntity.builder().user(user).build();
+                });
+        if (request.language() != null) profile.setLanguage(request.language());
+        if (request.timezone() != null) profile.setTimezone(request.timezone());
+        if (request.theme() != null) profile.setTheme(request.theme());
+        profile.setUpdatedAt(java.time.Instant.now());
+        return UserProfileResponse.from(profileRepository.save(profile));
+    }
+
     private UserResponse toResponse(UserEntity user) {
         Set<String> roleNames = user.getRoles().stream()
                 .map(RoleEntity::getName)
                 .collect(Collectors.toSet());
+        UserProfileResponse profile = profileRepository.findById(user.getId())
+                .map(UserProfileResponse::from).orElse(null);
         return new UserResponse(user.getId(), user.getUsername(), user.getEmail(),
                 user.getDisplayName(), user.isEnabled(), roleNames,
-                user.getCreatedAt(), user.getUpdatedAt());
+                user.getCreatedAt(), user.getUpdatedAt(), profile);
     }
 }

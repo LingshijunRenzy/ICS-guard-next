@@ -5,6 +5,7 @@ import guard.ics.backend.common.exception.BusinessException;
 import guard.ics.backend.common.exception.ErrorCode;
 import guard.ics.backend.common.exception.GlobalExceptionHandler;
 import guard.ics.backend.common.exception.ResourceNotFoundException;
+import guard.ics.backend.config.AppProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -12,7 +13,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class GlobalExceptionHandlerTest {
 
-    private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+    private final AppProperties appProperties = new AppProperties(
+            new AppProperties.Controller("http://127.0.0.1:8000"),
+            new AppProperties.Error(false));
+    private final GlobalExceptionHandler handler = new GlobalExceptionHandler(appProperties);
 
     @Test
     void shouldHandleBusinessException() {
