@@ -121,6 +121,9 @@ export default {
 
   topology: {
     title: 'Network Topology',
+    view: 'Topology View',
+    devices: 'Device List',
+    events: 'Topo Events',
     connectedDevices: 'Connected Devices',
     topologyEvents: 'Topology Events',
     eventType: 'Event Type',
@@ -134,6 +137,24 @@ export default {
     noDevices: 'No devices discovered',
     noEvents: 'No topology events',
     noHistory: 'No history for this device',
+    hasAlert: 'Has Alert',
+    resetView: 'Reset View',
+    zones: {
+      control: 'Control Room',
+      unit1: 'Unit 1',
+      unit2: 'Unit 2',
+      unit3: 'Unit 3',
+      switchyard: 'Switchyard',
+      bop: 'Balance of Plant',
+    },
+    deviceTypes: {
+      PLC: 'PLC',
+      SCADA: 'SCADA',
+      HMI: 'HMI',
+      RTU: 'RTU',
+      Protection: 'Protection',
+      Workstation: 'Workstation',
+    },
   },
 
   traffic: {

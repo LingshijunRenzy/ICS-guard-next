@@ -19,6 +19,7 @@
     "pinia": "^3.0.4",
     "tdesign-icons-vue-next": "^0.4.1",
     "tdesign-vue-next": "^1.18.0",
+    "three": "^0.184.0",
     "vue": "^3.5.33",
     "vue-echarts": "^8.0.1",
     "vue-i18n": "^11.4.0",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@types/three": "^0.184.0",
     "@vitejs/plugin-vue": "^6.0.6",
     "@vitest/coverage-v8": "^3.2.4",
     "@vue/test-utils": "^2.4.10",

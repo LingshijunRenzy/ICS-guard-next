@@ -1,0 +1,233 @@
+/* 拓扑可视化专用样式 — 3D 体块效果 */
+
+/* ===== 画布背景 ===== */
+.topo-container {
+  background: linear-gradient(180deg, #0a1628 0%, #132043 100%);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  min-height: calc(100vh - 200px);
+}
+
+.topo-wrapper {
+  position: relative;
+  overflow: auto;
+  max-height: calc(100vh - 200px);
+  cursor: grab;
+}
+
+.topo-wrapper:active {
+  cursor: grabbing;
+}
+
+.topo-svg {
+  display: block;
+  min-width: 100%;
+}
+
+/* ===== 区域卡片 ===== */
+.topo-zone-rect {
+  fill: rgba(0, 82, 217, 0.04);
+  stroke: rgba(0, 168, 112, 0.35);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 3;
+  rx: 8;
+  ry: 8;
+  transition: stroke 0.3s, fill 0.3s;
+}
+
+.topo-zone-rect.active {
+  stroke: rgba(0, 168, 112, 0.7);
+  fill: rgba(0, 168, 112, 0.06);
+}
+
+.topo-zone-label {
+  fill: rgba(0, 168, 112, 0.7);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* ===== 设备节点 — 3D 体块 ===== */
+.topo-device-node {
+  position: absolute;
+  width: 130px;
+  height: 80px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  /* 3D 透视 */
+  perspective: 800px;
+}
+
+.topo-device-body {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a2a4a 0%, #0d1b36 100%);
+  border: 1px solid rgba(0, 168, 112, 0.4);
+  border-radius: 6px;
+  /* 3D 立体阴影 */
+  box-shadow:
+    4px 4px 0 rgba(0, 168, 112, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+  /* 轻微三维旋转，增强立体感 */
+  transform: perspective(800px) rotateY(-2deg) rotateX(2deg);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 设备顶部高光模拟 */
+.topo-device-body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 168, 112, 0.3), transparent);
+}
+
+/* Hover 效果：上浮 + 增强阴影 */
+.topo-device-node:hover .topo-device-body {
+  box-shadow:
+    6px 6px 0 rgba(0, 168, 112, 0.5),
+    0 6px 20px rgba(0, 168, 112, 0.2);
+  transform: perspective(800px) rotateY(-2deg) rotateX(2deg) translateY(-3px);
+  border-color: rgba(0, 168, 112, 0.7);
+}
+
+/* 设备告警状态 */
+.topo-device-node.has-alert .topo-device-body {
+  border-color: rgba(255, 82, 82, 0.6);
+  box-shadow:
+    4px 4px 0 rgba(255, 82, 82, 0.3),
+    0 0 12px rgba(255, 82, 82, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.topo-device-node.has-alert:hover .topo-device-body {
+  box-shadow:
+    6px 6px 0 rgba(255, 82, 82, 0.5),
+    0 0 20px rgba(255, 82, 82, 0.3),
+    0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* 设备离线状态 */
+.topo-device-node.offline .topo-device-body {
+  border-color: rgba(227, 77, 89, 0.4);
+  box-shadow:
+    4px 4px 0 rgba(227, 77, 89, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* 图标背景 */
+.topo-device-icon-bg {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: rgba(0, 168, 112, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: rgba(0, 168, 112, 0.9);
+}
+
+/* 设备名称 */
+.topo-device-name {
+  position: absolute;
+  left: 42px;
+  top: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #e0e6ed;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 82px;
+}
+
+/* 设备类型 */
+.topo-device-type {
+  position: absolute;
+  left: 42px;
+  top: 30px;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 状态指示点 */
+.topo-device-status-dot {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.topo-dot-online {
+  background: #00c853;
+  box-shadow: 0 0 6px rgba(0, 200, 83, 0.6);
+  animation: pulse-green 2s ease-in-out infinite;
+}
+
+.topo-dot-offline {
+  background: #e34d59;
+  box-shadow: 0 0 4px rgba(227, 77, 89, 0.4);
+}
+
+/* 在线呼吸灯动画 */
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(0, 200, 83, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(0, 200, 83, 0.8);
+  }
+}
+
+/* 设备状态文字 */
+.topo-device-status-label {
+  position: absolute;
+  bottom: 12px;
+  left: 30px;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 告警光晕 */
+.topo-alert-glow {
+  position: absolute;
+  top: -24px;
+  left: -20px;
+  width: 170px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 82, 82, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+  animation: alert-pulse 2s ease-in-out infinite;
+}
+
+@keyframes alert-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+/* ===== 连线 ===== */
+.topo-connection-line {
+  fill: none;
+  stroke: rgba(0, 168, 112, 0.2);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 2px rgba(0, 168, 112, 0.1));
+}
+
+.topo-connection-line.active {
+  stroke: rgba(0, 200, 83, 0.45);
+  stroke-width: 2;
+}

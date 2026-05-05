@@ -34,9 +34,27 @@ const router = createRouter({
         },
         {
           path: 'topology',
-          name: 'Topology',
-          component: () => import('@/views/TopologyView.vue'),
-          meta: { title: 'Topology', permission: 'topology:read' },
+          redirect: '/topology/view',
+          children: [
+            {
+              path: 'view',
+              name: 'TopologyView',
+              component: () => import('@/views/TopologyView.vue'),
+              meta: { title: 'Topology View', permission: 'topology:read' },
+            },
+            {
+              path: 'devices',
+              name: 'DeviceList',
+              component: () => import('@/views/DeviceListView.vue'),
+              meta: { title: 'Device List', permission: 'topology:read' },
+            },
+            {
+              path: 'events',
+              name: 'EventList',
+              component: () => import('@/views/EventListView.vue'),
+              meta: { title: 'Topo Events', permission: 'topology:read' },
+            },
+          ],
         },
         {
           path: 'traffic',

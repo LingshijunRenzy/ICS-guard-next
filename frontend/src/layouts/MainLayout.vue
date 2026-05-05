@@ -34,12 +34,14 @@ v-model:expanded="expandedMenus"
 
         <!-- 网络管理组 -->
         <t-menu-group :title="$t('layout.groupNetwork')" v-if="auth.hasPermission('topology:read') || auth.hasPermission('metrics:read') || auth.hasPermission('sdn:read')">
-          <t-menu-item value="/topology" v-if="auth.hasPermission('topology:read')">
+          <t-submenu :value="'topology-root'" :title="$t('layout.topology')" v-if="auth.hasPermission('topology:read')">
             <template #icon>
               <ShareIcon />
             </template>
-            {{ $t('layout.topology') }}
-          </t-menu-item>
+            <t-menu-item value="/topology/view">{{ $t('topology.view') }}</t-menu-item>
+            <t-menu-item value="/topology/devices">{{ $t('topology.devices') }}</t-menu-item>
+            <t-menu-item value="/topology/events">{{ $t('topology.events') }}</t-menu-item>
+          </t-submenu>
           <t-menu-item value="/traffic" v-if="auth.hasPermission('metrics:read')">
             <template #icon>
               <LinkIcon />
@@ -135,6 +137,11 @@ const expandedMenus = ref<string[]>([])
 watch(
   () => route.path,
   (path) => {
+    if (path.startsWith('/topology')) {
+      if (!expandedMenus.value.includes('topology-root')) {
+        expandedMenus.value = [...expandedMenus.value, 'topology-root']
+      }
+    }
     if (path.startsWith('/users') || path.startsWith('/roles') || path.startsWith('/permissions')) {
       if (!expandedMenus.value.includes('users-root')) {
         expandedMenus.value = [...expandedMenus.value, 'users-root']

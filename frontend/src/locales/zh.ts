@@ -121,6 +121,9 @@ export default {
 
   topology: {
     title: '网络拓扑',
+    view: '拓扑视图',
+    devices: '设备列表',
+    events: '拓扑事件',
     connectedDevices: '已连接设备',
     topologyEvents: '拓扑事件',
     eventType: '事件类型',
@@ -134,6 +137,22 @@ export default {
     noDevices: '未发现设备',
     noEvents: '暂无拓扑事件',
     noHistory: '该设备无历史记录',
+    zones: {
+      control: '控制中心',
+      unit1: '机组 1',
+      unit2: '机组 2',
+      unit3: '机组 3',
+      switchyard: '开关站',
+      bop: '公用系统',
+    },
+    deviceTypes: {
+      PLC: 'PLC',
+      SCADA: 'SCADA',
+      HMI: 'HMI',
+      RTU: 'RTU',
+      Protection: '保护',
+      Workstation: '工作站',
+    },
   },
 
   traffic: {
