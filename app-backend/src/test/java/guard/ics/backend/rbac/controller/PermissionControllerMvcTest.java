@@ -38,7 +38,7 @@ class PermissionControllerMvcTest {
     @Test
     void shouldListPermissions() throws Exception {
         when(permissionService.list()).thenReturn(List.of(
-                new PermissionResponse(1L, "alerts:read", "Read alerts", null, null, null)));
+                new PermissionResponse(1L, "alerts:read", "Read alerts", null, null, null, null, null)));
 
         mockMvc.perform(get("/api/permissions").with(user("admin").authorities(() -> "users:read")))
                 .andExpect(status().isOk())
@@ -54,8 +54,8 @@ class PermissionControllerMvcTest {
 
     @Test
     void shouldCreatePermission() throws Exception {
-        when(permissionService.create(eq("new:perm"), eq("New permission"), any()))
-                .thenReturn(new PermissionResponse(14L, "new:perm", "New permission", null,
+        when(permissionService.create(eq("new:perm"), eq("New permission"), any(), any()))
+                .thenReturn(new PermissionResponse(14L, "new:perm", "New permission", null, null, null,
                         Instant.parse("2026-05-01T00:00:00Z"), Instant.parse("2026-05-01T00:00:00Z")));
 
         mockMvc.perform(post("/api/permissions")
@@ -70,8 +70,8 @@ class PermissionControllerMvcTest {
 
     @Test
     void shouldCreatePermissionWithMetadata() throws Exception {
-        when(permissionService.create(eq("meta:perm"), any(), eq(Map.of("category", "core"))))
-                .thenReturn(new PermissionResponse(15L, "meta:perm", "Desc", Map.of("category", "core"), null, null));
+        when(permissionService.create(eq("meta:perm"), any(), eq(Map.of("category", "core")), any()))
+                .thenReturn(new PermissionResponse(15L, "meta:perm", "Desc", Map.of("category", "core"), null, null, null, null));
 
         mockMvc.perform(post("/api/permissions")
                         .with(user("admin").authorities(() -> "users:manage"))
@@ -84,8 +84,8 @@ class PermissionControllerMvcTest {
 
     @Test
     void shouldUpdatePermission() throws Exception {
-        when(permissionService.update(eq(1L), eq("updated:perm"), any(), any()))
-                .thenReturn(new PermissionResponse(1L, "updated:perm", "Updated", null, null, null));
+        when(permissionService.update(eq(1L), eq("updated:perm"), any(), any(), any()))
+                .thenReturn(new PermissionResponse(1L, "updated:perm", "Updated", null, null, null, null, null));
 
         mockMvc.perform(put("/api/permissions/1")
                         .with(user("admin").authorities(() -> "users:manage"))
@@ -117,7 +117,7 @@ class PermissionControllerMvcTest {
 
     @Test
     void shouldReturn404WhenUpdatingNonexistent() throws Exception {
-        when(permissionService.update(eq(99L), any(), any(), any()))
+        when(permissionService.update(eq(99L), any(), any(), any(), any()))
                 .thenThrow(new ResourceNotFoundException("Permission", 99L));
 
         mockMvc.perform(put("/api/permissions/99")

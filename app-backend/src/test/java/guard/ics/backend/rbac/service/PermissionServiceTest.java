@@ -4,8 +4,9 @@ import guard.ics.backend.common.exception.ConflictException;
 import guard.ics.backend.common.exception.ResourceNotFoundException;
 import guard.ics.backend.rbac.dto.PermissionResponse;
 import guard.ics.backend.rbac.entity.PermissionEntity;
-import guard.ics.backend.rbac.entity.PermissionMetadataEntity;
+import guard.ics.backend.rbac.entity.PermissionTypeEntity;
 import guard.ics.backend.rbac.repository.PermissionRepository;
+import guard.ics.backend.rbac.repository.PermissionTypeRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,6 +31,9 @@ class PermissionServiceTest {
 
     @Mock
     private PermissionRepository permissionRepository;
+
+    @Mock
+    private PermissionTypeRepository permissionTypeRepository;
 
     @InjectMocks
     private PermissionService permissionService;
@@ -71,7 +75,7 @@ class PermissionServiceTest {
         when(permissionRepository.save(any(PermissionEntity.class)))
                 .thenReturn(permEntity(14L, "new:perm", "New permission"));
 
-        PermissionResponse result = permissionService.create("new:perm", "New permission", null);
+        PermissionResponse result = permissionService.create("new:perm", "New permission", null, null);
 
         assertThat(result.id()).isEqualTo(14L);
         assertThat(result.name()).isEqualTo("new:perm");
@@ -85,7 +89,7 @@ class PermissionServiceTest {
         when(permissionRepository.save(any(PermissionEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         PermissionResponse result = permissionService.create("new:perm", "Desc",
-                Map.of("category", "core", "auditable", "true"));
+                Map.of("category", "core", "auditable", "true"), null);
 
         assertThat(result.metadata()).containsEntry("category", "core");
         assertThat(result.metadata()).containsEntry("auditable", "true");
@@ -96,7 +100,7 @@ class PermissionServiceTest {
         when(permissionRepository.findByName("duplicate"))
                 .thenReturn(Optional.of(permEntity(1L, "duplicate", "Exists")));
 
-        assertThatThrownBy(() -> permissionService.create("duplicate", "Desc", null))
+        assertThatThrownBy(() -> permissionService.create("duplicate", "Desc", null, null))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Permission already exists");
     }
@@ -108,7 +112,7 @@ class PermissionServiceTest {
         when(permissionRepository.save(any(PermissionEntity.class)))
                 .thenReturn(permEntity(1L, "new:perm", "Updated"));
 
-        PermissionResponse result = permissionService.update(1L, "new:perm", "Updated", null);
+        PermissionResponse result = permissionService.update(1L, "new:perm", "Updated", null, null);
 
         assertThat(result.name()).isEqualTo("new:perm");
         assertThat(result.description()).isEqualTo("Updated");
@@ -120,7 +124,7 @@ class PermissionServiceTest {
         when(permissionRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(permissionRepository.save(any(PermissionEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        PermissionResponse result = permissionService.update(1L, null, null, Map.of("tag", "v2"));
+        PermissionResponse result = permissionService.update(1L, null, null, Map.of("tag", "v2"), null);
 
         assertThat(result.metadata()).containsEntry("tag", "v2");
     }
@@ -141,5 +145,32 @@ class PermissionServiceTest {
         assertThatThrownBy(() -> permissionService.delete(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Permission not found");
+    }
+
+    @Test
+    void shouldCreatePermissionWithType() {
+        PermissionTypeEntity type = PermissionTypeEntity.builder().id(1L).name("admin").description("Admin scope").build();
+        when(permissionRepository.findByName("admin:perm")).thenReturn(Optional.empty());
+        when(permissionTypeRepository.findById(1L)).thenReturn(Optional.of(type));
+        when(permissionRepository.save(any(PermissionEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        PermissionResponse result = permissionService.create("admin:perm", "Desc", null, 1L);
+
+        assertThat(result.typeId()).isEqualTo(1L);
+        assertThat(result.typeName()).isEqualTo("admin");
+    }
+
+    @Test
+    void shouldUpdatePermissionType() {
+        PermissionEntity existing = permEntity(1L, "perm", "Desc");
+        PermissionTypeEntity type = PermissionTypeEntity.builder().id(2L).name("operator").description("Operator scope").build();
+        when(permissionRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(permissionTypeRepository.findById(2L)).thenReturn(Optional.of(type));
+        when(permissionRepository.save(any(PermissionEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        PermissionResponse result = permissionService.update(1L, null, null, null, 2L);
+
+        assertThat(result.typeId()).isEqualTo(2L);
+        assertThat(result.typeName()).isEqualTo("operator");
     }
 }

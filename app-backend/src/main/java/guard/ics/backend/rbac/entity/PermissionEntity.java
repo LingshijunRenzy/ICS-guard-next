@@ -45,4 +45,8 @@ public class PermissionEntity {
     @OneToMany(mappedBy = "permission", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private List<PermissionMetadataEntity> metadata = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "type_id")
+    private PermissionTypeEntity type;
 }

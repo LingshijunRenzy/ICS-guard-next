@@ -5,7 +5,9 @@ import guard.ics.backend.common.exception.ResourceNotFoundException;
 import guard.ics.backend.rbac.dto.PermissionResponse;
 import guard.ics.backend.rbac.entity.PermissionEntity;
 import guard.ics.backend.rbac.entity.PermissionMetadataEntity;
+import guard.ics.backend.rbac.entity.PermissionTypeEntity;
 import guard.ics.backend.rbac.repository.PermissionRepository;
+import guard.ics.backend.rbac.repository.PermissionTypeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +20,11 @@ import java.util.stream.Collectors;
 public class PermissionService {
 
     private final PermissionRepository permissionRepository;
+    private final PermissionTypeRepository permissionTypeRepository;
 
-    public PermissionService(PermissionRepository permissionRepository) {
+    public PermissionService(PermissionRepository permissionRepository, PermissionTypeRepository permissionTypeRepository) {
         this.permissionRepository = permissionRepository;
+        this.permissionTypeRepository = permissionTypeRepository;
     }
 
     @Transactional(readOnly = true)
@@ -31,7 +35,7 @@ public class PermissionService {
     }
 
     @Transactional
-    public PermissionResponse create(String name, String description, Map<String, String> metadata) {
+    public PermissionResponse create(String name, String description, Map<String, String> metadata, Long typeId) {
         if (permissionRepository.findByName(name).isPresent()) {
             throw new ConflictException("Permission already exists: " + name);
         }
@@ -42,11 +46,14 @@ public class PermissionService {
         if (metadata != null) {
             entity.setMetadata(buildMetadata(entity, metadata));
         }
+        if (typeId != null) {
+            entity.setType(resolveType(typeId));
+        }
         return toResponse(permissionRepository.save(entity));
     }
 
     @Transactional
-    public PermissionResponse update(Long id, String name, String description, Map<String, String> metadata) {
+    public PermissionResponse update(Long id, String name, String description, Map<String, String> metadata, Long typeId) {
         PermissionEntity entity = permissionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Permission", id));
         if (name != null) entity.setName(name);
@@ -55,7 +62,15 @@ public class PermissionService {
             entity.getMetadata().clear();
             entity.getMetadata().addAll(buildMetadata(entity, metadata));
         }
+        if (typeId != null) {
+            entity.setType(resolveType(typeId));
+        }
         return toResponse(permissionRepository.save(entity));
+    }
+
+    private PermissionTypeEntity resolveType(Long typeId) {
+        return permissionTypeRepository.findById(typeId)
+                .orElseThrow(() -> new ResourceNotFoundException("PermissionType", typeId));
     }
 
     @Transactional
@@ -83,11 +98,15 @@ public class PermissionService {
                 ? entity.getMetadata().stream()
                     .collect(Collectors.toMap(m -> m.getId().getKey(), PermissionMetadataEntity::getValue))
                 : null;
+        Long typeId = entity.getType() != null ? entity.getType().getId() : null;
+        String typeName = entity.getType() != null ? entity.getType().getName() : null;
         return new PermissionResponse(
                 entity.getId(),
                 entity.getName(),
                 entity.getDescription(),
                 metadata,
+                typeId,
+                typeName,
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );

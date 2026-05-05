@@ -40,7 +40,8 @@ public class PermissionController {
         String name = (String) body.get("name");
         String description = (String) body.get("description");
         Map<String, String> metadata = extractMetadata(body);
-        return ApiResponse.created(permissionService.create(name, description, metadata));
+        Long typeId = body.get("typeId") != null ? ((Number) body.get("typeId")).longValue() : null;
+        return ApiResponse.created(permissionService.create(name, description, metadata, typeId));
     }
 
     @Operation(summary = "Update permission")
@@ -53,7 +54,8 @@ public class PermissionController {
         String name = (String) body.get("name");
         String description = (String) body.get("description");
         Map<String, String> metadata = extractMetadata(body);
-        return ApiResponse.success(permissionService.update(id, name, description, metadata));
+        Long typeId = body.get("typeId") != null ? ((Number) body.get("typeId")).longValue() : null;
+        return ApiResponse.success(permissionService.update(id, name, description, metadata, typeId));
     }
 
     @SuppressWarnings("unchecked")
