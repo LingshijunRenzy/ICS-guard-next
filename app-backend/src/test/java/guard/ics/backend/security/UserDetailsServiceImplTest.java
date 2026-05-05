@@ -30,7 +30,7 @@ class UserDetailsServiceImplTest {
 
     @Test
     void shouldLoadUserByUsername() {
-        PermissionEntity perm = new PermissionEntity(1L, "alerts:read", "View alerts");
+        PermissionEntity perm = PermissionEntity.builder().id(1L).name("alerts:read").description("View alerts").build();
         RoleEntity role = new RoleEntity(1L, "ROLE_ADMIN", null, Set.of(perm));
         UserEntity user = UserEntity.builder()
                 .id(1L).username("admin").passwordHash("{bcrypt}hash").enabled(true)
@@ -70,8 +70,8 @@ class UserDetailsServiceImplTest {
 
     @Test
     void shouldMapMultiplePermissions() {
-        PermissionEntity p1 = new PermissionEntity(1L, "alerts:read", null);
-        PermissionEntity p2 = new PermissionEntity(2L, "alerts:manage", null);
+        PermissionEntity p1 = PermissionEntity.builder().id(1L).name("alerts:read").build();
+        PermissionEntity p2 = PermissionEntity.builder().id(2L).name("alerts:manage").build();
         RoleEntity role = new RoleEntity(1L, "ROLE_OPERATOR", null, Set.of(p1, p2));
         UserEntity user = UserEntity.builder()
                 .id(1L).username("operator").passwordHash("hash").enabled(true)

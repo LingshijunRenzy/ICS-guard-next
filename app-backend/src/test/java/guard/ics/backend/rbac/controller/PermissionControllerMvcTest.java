@@ -13,7 +13,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -36,7 +38,7 @@ class PermissionControllerMvcTest {
     @Test
     void shouldListPermissions() throws Exception {
         when(permissionService.list()).thenReturn(List.of(
-                new PermissionResponse(1L, "alerts:read", "Read alerts")));
+                new PermissionResponse(1L, "alerts:read", "Read alerts", null, null, null)));
 
         mockMvc.perform(get("/api/permissions").with(user("admin").authorities(() -> "users:read")))
                 .andExpect(status().isOk())
@@ -52,8 +54,9 @@ class PermissionControllerMvcTest {
 
     @Test
     void shouldCreatePermission() throws Exception {
-        when(permissionService.create(eq("new:perm"), eq("New permission")))
-                .thenReturn(new PermissionResponse(14L, "new:perm", "New permission"));
+        when(permissionService.create(eq("new:perm"), eq("New permission"), any()))
+                .thenReturn(new PermissionResponse(14L, "new:perm", "New permission", null,
+                        Instant.parse("2026-05-01T00:00:00Z"), Instant.parse("2026-05-01T00:00:00Z")));
 
         mockMvc.perform(post("/api/permissions")
                         .with(user("admin").authorities(() -> "users:manage"))
@@ -61,13 +64,28 @@ class PermissionControllerMvcTest {
                         .content("{\"name\":\"new:perm\",\"description\":\"New permission\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(201))
-                .andExpect(jsonPath("$.data.name").value("new:perm"));
+                .andExpect(jsonPath("$.data.name").value("new:perm"))
+                .andExpect(jsonPath("$.data.createdAt").exists());
+    }
+
+    @Test
+    void shouldCreatePermissionWithMetadata() throws Exception {
+        when(permissionService.create(eq("meta:perm"), any(), eq(Map.of("category", "core"))))
+                .thenReturn(new PermissionResponse(15L, "meta:perm", "Desc", Map.of("category", "core"), null, null));
+
+        mockMvc.perform(post("/api/permissions")
+                        .with(user("admin").authorities(() -> "users:manage"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"meta:perm\",\"metadata\":{\"category\":\"core\"}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(201))
+                .andExpect(jsonPath("$.data.metadata.category").value("core"));
     }
 
     @Test
     void shouldUpdatePermission() throws Exception {
-        when(permissionService.update(eq(1L), eq("updated:perm"), any()))
-                .thenReturn(new PermissionResponse(1L, "updated:perm", "Updated"));
+        when(permissionService.update(eq(1L), eq("updated:perm"), any(), any()))
+                .thenReturn(new PermissionResponse(1L, "updated:perm", "Updated", null, null, null));
 
         mockMvc.perform(put("/api/permissions/1")
                         .with(user("admin").authorities(() -> "users:manage"))
@@ -99,7 +117,7 @@ class PermissionControllerMvcTest {
 
     @Test
     void shouldReturn404WhenUpdatingNonexistent() throws Exception {
-        when(permissionService.update(eq(99L), any(), any()))
+        when(permissionService.update(eq(99L), any(), any(), any()))
                 .thenThrow(new ResourceNotFoundException("Permission", 99L));
 
         mockMvc.perform(put("/api/permissions/99")

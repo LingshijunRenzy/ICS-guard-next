@@ -7,12 +7,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/permissions")
@@ -39,7 +39,8 @@ public class PermissionController {
     public ApiResponse<PermissionResponse> create(@RequestBody Map<String, Object> body) {
         String name = (String) body.get("name");
         String description = (String) body.get("description");
-        return ApiResponse.created(permissionService.create(name, description));
+        Map<String, String> metadata = extractMetadata(body);
+        return ApiResponse.created(permissionService.create(name, description, metadata));
     }
 
     @Operation(summary = "Update permission")
@@ -51,7 +52,18 @@ public class PermissionController {
             @RequestBody Map<String, Object> body) {
         String name = (String) body.get("name");
         String description = (String) body.get("description");
-        return ApiResponse.success(permissionService.update(id, name, description));
+        Map<String, String> metadata = extractMetadata(body);
+        return ApiResponse.success(permissionService.update(id, name, description, metadata));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, String> extractMetadata(Map<String, Object> body) {
+        Object metaObj = body.get("metadata");
+        if (metaObj instanceof Map) {
+            return ((Map<String, Object>) metaObj).entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue())));
+        }
+        return null;
     }
 
     @Operation(summary = "Delete permission")

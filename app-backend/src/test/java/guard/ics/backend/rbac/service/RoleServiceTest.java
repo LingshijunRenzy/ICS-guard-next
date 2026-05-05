@@ -49,7 +49,7 @@ class RoleServiceTest {
 
     @Test
     void shouldGetRoleById() {
-        PermissionEntity perm = new PermissionEntity(1L, "alerts:read", null);
+        PermissionEntity perm = PermissionEntity.builder().id(1L).name("alerts:read").build();
         RoleEntity role = new RoleEntity(1L, "ROLE_ADMIN", "Admin", Set.of(perm));
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
 
@@ -86,8 +86,8 @@ class RoleServiceTest {
     void shouldCreateRoleWithPermissions() {
         when(roleRepository.existsByName("ROLE_WITH_PERMS")).thenReturn(false);
         when(permissionRepository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(
-                new PermissionEntity(1L, "alerts:read", null),
-                new PermissionEntity(2L, "metrics:read", null)
+                PermissionEntity.builder().id(1L).name("alerts:read").build(),
+                PermissionEntity.builder().id(2L).name("metrics:read").build()
         ));
         when(roleRepository.save(any(RoleEntity.class))).thenAnswer(inv -> {
             RoleEntity e = inv.getArgument(0);
@@ -127,7 +127,7 @@ class RoleServiceTest {
         RoleEntity existing = RoleEntity.builder().id(1L).name("ROLE_X").build();
         when(roleRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(permissionRepository.findAllById(Set.of(3L))).thenReturn(List.of(
-                new PermissionEntity(3L, "audit:read", null)
+                PermissionEntity.builder().id(3L).name("audit:read").build()
         ));
         when(roleRepository.save(any())).thenReturn(existing);
 
