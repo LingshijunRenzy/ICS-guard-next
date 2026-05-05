@@ -45,7 +45,7 @@ class RuleControllerMvcTest {
         when(ruleService.list(any(), any(), any(), any()))
                 .thenReturn(new PageDTO<>(List.of(ruleResp(true)), 0, 20, 1, 1));
 
-        mockMvc.perform(get("/api/rules").with(user("admin").authorities(() -> "policies:read")))
+        mockMvc.perform(get("/api/rules").with(user("admin").authorities(() -> "rules:read")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.content[0].name").value("Block HTTP"));
@@ -62,7 +62,7 @@ class RuleControllerMvcTest {
     void shouldGetRuleById() throws Exception {
         when(ruleService.getById(1L)).thenReturn(ruleResp(true));
 
-        mockMvc.perform(get("/api/rules/1").with(user("admin").authorities(() -> "policies:read")))
+        mockMvc.perform(get("/api/rules/1").with(user("admin").authorities(() -> "rules:read")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(1));
     }
@@ -71,7 +71,7 @@ class RuleControllerMvcTest {
     void shouldReturn404WhenRuleNotFound() throws Exception {
         when(ruleService.getById(99L)).thenThrow(new ResourceNotFoundException("Rule", 99L));
 
-        mockMvc.perform(get("/api/rules/99").with(user("admin").authorities(() -> "policies:read")))
+        mockMvc.perform(get("/api/rules/99").with(user("admin").authorities(() -> "rules:read")))
                 .andExpect(status().isNotFound());
     }
 
@@ -80,7 +80,7 @@ class RuleControllerMvcTest {
         when(ruleService.setEnabled(1L, true)).thenReturn(ruleResp(true));
 
         mockMvc.perform(patch("/api/rules/1/enable")
-                .with(user("admin").authorities(() -> "policies:manage")).with(csrf()))
+                .with(user("admin").authorities(() -> "rules:manage")).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.enabled").value(true));
     }
@@ -90,7 +90,7 @@ class RuleControllerMvcTest {
         when(ruleService.setEnabled(1L, false)).thenReturn(ruleResp(false));
 
         mockMvc.perform(patch("/api/rules/1/disable")
-                .with(user("admin").authorities(() -> "policies:manage")).with(csrf()))
+                .with(user("admin").authorities(() -> "rules:manage")).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.enabled").value(false));
     }

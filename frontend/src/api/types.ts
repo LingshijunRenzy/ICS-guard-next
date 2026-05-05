@@ -26,6 +26,7 @@ export interface UserResponse {
   displayName: string | null
   enabled: boolean
   roles: string[]
+  permissions: string[]
   createdAt: string
   updatedAt: string
   profile: UserProfileResponse | null

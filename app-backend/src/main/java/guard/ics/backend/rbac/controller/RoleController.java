@@ -28,14 +28,14 @@ public class RoleController {
 
     @Operation(summary = "List all roles")
     @GetMapping
-    @PreAuthorize("hasAuthority('users:read')")
+    @PreAuthorize("hasAuthority('roles:read')")
     public ApiResponse<List<RoleResponse>> list() {
         return ApiResponse.success(roleService.list());
     }
 
     @Operation(summary = "Get role by ID")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('users:read')")
+    @PreAuthorize("hasAuthority('roles:read')")
     public ApiResponse<RoleResponse> get(@Parameter(description = "Role ID") @PathVariable Long id) {
         return ApiResponse.success(roleService.getById(id));
     }
@@ -43,7 +43,7 @@ public class RoleController {
     @Operation(summary = "Create new role")
     @ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201"), @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409")})
     @PostMapping
-    @PreAuthorize("hasAuthority('users:manage')")
+    @PreAuthorize("hasAuthority('roles:manage')")
     public ApiResponse<RoleResponse> create(@RequestBody Map<String, Object> body) {
         String name = (String) body.get("name");
         String description = (String) body.get("description");
@@ -56,7 +56,7 @@ public class RoleController {
 
     @Operation(summary = "Update role")
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('users:manage')")
+    @PreAuthorize("hasAuthority('roles:manage')")
     public ApiResponse<RoleResponse> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         String name = (String) body.get("name");
         String description = (String) body.get("description");
@@ -70,7 +70,7 @@ public class RoleController {
     @Operation(summary = "Delete role")
     @ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200"), @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404")})
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('users:manage')")
+    @PreAuthorize("hasAuthority('roles:manage')")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         roleService.delete(id);
         return ApiResponse.success();

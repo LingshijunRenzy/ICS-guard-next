@@ -28,7 +28,7 @@ class RoleControllerMvcTest {
 
     @Test
     void shouldListRoles() throws Exception {
-        mockMvc.perform(get("/api/roles").with(user("admin").authorities(() -> "users:read")))
+        mockMvc.perform(get("/api/roles").with(user("admin").authorities(() -> "roles:read")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
     }
@@ -43,7 +43,7 @@ class RoleControllerMvcTest {
     void shouldReturn404WhenNotFound() throws Exception {
         when(roleService.getById(99L)).thenThrow(new ResourceNotFoundException("Role", 99L));
 
-        mockMvc.perform(get("/api/roles/99").with(user("admin").authorities(() -> "users:read")))
+        mockMvc.perform(get("/api/roles/99").with(user("admin").authorities(() -> "roles:read")))
                 .andExpect(status().isNotFound());
     }
 }

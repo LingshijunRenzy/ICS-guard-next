@@ -26,14 +26,14 @@ public class PermissionTypeController {
 
     @Operation(summary = "List all permission types")
     @GetMapping
-    @PreAuthorize("hasAuthority('users:read')")
+    @PreAuthorize("hasAuthority('permissions:read')")
     public ApiResponse<List<PermissionTypeResponse>> list() {
         return ApiResponse.success(permissionTypeService.list());
     }
 
     @Operation(summary = "Get permission type by ID")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('users:read')")
+    @PreAuthorize("hasAuthority('permissions:read')")
     public ApiResponse<PermissionTypeResponse> get(@Parameter(description = "Type ID") @PathVariable Long id) {
         return ApiResponse.success(permissionTypeService.getById(id));
     }
@@ -41,7 +41,7 @@ public class PermissionTypeController {
     @Operation(summary = "Create new permission type")
     @ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201"), @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409")})
     @PostMapping
-    @PreAuthorize("hasAuthority('users:manage')")
+    @PreAuthorize("hasAuthority('permissions:manage')")
     public ApiResponse<PermissionTypeResponse> create(@RequestBody Map<String, Object> body) {
         String name = (String) body.get("name");
         String description = (String) body.get("description");
@@ -50,7 +50,7 @@ public class PermissionTypeController {
 
     @Operation(summary = "Update permission type")
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('users:manage')")
+    @PreAuthorize("hasAuthority('permissions:manage')")
     public ApiResponse<PermissionTypeResponse> update(
             @Parameter(description = "Type ID") @PathVariable Long id,
             @RequestBody Map<String, Object> body) {
@@ -62,7 +62,7 @@ public class PermissionTypeController {
     @Operation(summary = "Delete permission type")
     @ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200"), @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404")})
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('users:manage')")
+    @PreAuthorize("hasAuthority('permissions:manage')")
     public ApiResponse<Void> delete(@Parameter(description = "Type ID") @PathVariable Long id) {
         permissionTypeService.delete(id);
         return ApiResponse.success();

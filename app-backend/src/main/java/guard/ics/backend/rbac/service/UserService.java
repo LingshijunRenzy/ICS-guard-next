@@ -8,6 +8,7 @@ import guard.ics.backend.rbac.dto.CreateUserRequest;
 import guard.ics.backend.rbac.dto.UpdateProfileRequest;
 import guard.ics.backend.rbac.dto.UserProfileResponse;
 import guard.ics.backend.rbac.dto.UserResponse;
+import guard.ics.backend.rbac.entity.PermissionEntity;
 import guard.ics.backend.rbac.entity.RoleEntity;
 import guard.ics.backend.rbac.entity.UserEntity;
 import guard.ics.backend.rbac.entity.UserProfileEntity;
@@ -128,10 +129,14 @@ public class UserService {
         Set<String> roleNames = user.getRoles().stream()
                 .map(RoleEntity::getName)
                 .collect(Collectors.toSet());
+        Set<String> permissionNames = user.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(PermissionEntity::getName)
+                .collect(Collectors.toSet());
         UserProfileResponse profile = profileRepository.findById(user.getId())
                 .map(UserProfileResponse::from).orElse(null);
         return new UserResponse(user.getId(), user.getUsername(), user.getEmail(),
-                user.getDisplayName(), user.isEnabled(), roleNames,
+                user.getDisplayName(), user.isEnabled(), roleNames, permissionNames,
                 user.getCreatedAt(), user.getUpdatedAt(), profile);
     }
 }

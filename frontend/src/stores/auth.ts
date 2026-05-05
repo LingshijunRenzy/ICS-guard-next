@@ -12,6 +12,11 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => user.value !== null)
   const username = computed(() => user.value?.username ?? '')
   const roles = computed(() => user.value?.roles ?? [])
+  const permissions = computed(() => new Set(user.value?.permissions ?? []))
+
+  function hasPermission(p: string): boolean {
+    return permissions.value.has(p)
+  }
 
   async function login(credentials: LoginRequest) {
     loading.value = true
@@ -46,5 +51,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, loading, isAuthenticated, username, roles, login, logout, fetchMe }
+  return { user, loading, isAuthenticated, username, roles, permissions, hasPermission, login, logout, fetchMe }
 })

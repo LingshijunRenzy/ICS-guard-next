@@ -6,7 +6,7 @@
         <h2>{{ $t('roles.title') }}</h2>
       </div>
       <div class="header-actions">
-        <t-button theme="primary" @click="openCreate">
+        <t-button v-if="auth.hasPermission('roles:manage')" theme="primary" @click="openCreate">
           <template #icon><AddIcon /></template>
           {{ $t('roles.newRole') }}
         </t-button>
@@ -30,8 +30,8 @@
             <span v-if="!row.permissions?.length" class="tech-font">{{ $t('common.dash') }}</span>
           </template>
           <template #actions="{ row }">
-            <t-button variant="text" theme="primary" size="small" @click="openEdit(row)">{{ $t('common.edit') }}</t-button>
-            <t-popconfirm :content="$t('roles.deleteConfirm')" @confirm="handleDelete(row.id)">
+            <t-button v-if="auth.hasPermission('roles:manage')" variant="text" theme="primary" size="small" @click="openEdit(row)">{{ $t('common.edit') }}</t-button>
+            <t-popconfirm v-if="auth.hasPermission('roles:manage')" :content="$t('roles.deleteConfirm')" @confirm="handleDelete(row.id)">
               <t-button variant="text" theme="danger" size="small">{{ $t('common.delete') }}</t-button>
             </t-popconfirm>
           </template>
@@ -70,8 +70,10 @@ import { useI18n } from 'vue-i18n'
 import type { RoleResponse, PermissionResponse, CreateRoleRequest } from '@/api/types'
 import type { FormInstanceFunctions, FormRules } from 'tdesign-vue-next'
 import SkeletonTable from '@/components/skeleton/SkeletonTable.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const auth = useAuthStore()
 const loading = ref(false)
 const saving = ref(false)
 const roles = ref<RoleResponse[]>([])

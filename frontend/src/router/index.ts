@@ -18,61 +18,61 @@ const router = createRouter({
           path: '',
           name: 'Dashboard',
           component: () => import('@/views/DashboardView.vue'),
-          meta: { title: 'Dashboard' },
+          meta: { title: 'Dashboard', permission: 'dashboard:read' },
         },
         {
           path: 'alerts',
           name: 'Alerts',
           component: () => import('@/views/AlertsView.vue'),
-          meta: { title: 'Alerts' },
+          meta: { title: 'Alerts', permission: 'alerts:read' },
         },
         {
           path: 'rules',
           name: 'Rules',
           component: () => import('@/views/RulesView.vue'),
-          meta: { title: 'Rules' },
+          meta: { title: 'Rules', permission: 'rules:read' },
         },
         {
           path: 'topology',
           name: 'Topology',
           component: () => import('@/views/TopologyView.vue'),
-          meta: { title: 'Topology' },
+          meta: { title: 'Topology', permission: 'topology:read' },
         },
         {
           path: 'traffic',
           name: 'Traffic',
           component: () => import('@/views/TrafficView.vue'),
-          meta: { title: 'Traffic' },
+          meta: { title: 'Traffic', permission: 'metrics:read' },
         },
         {
           path: 'audit-logs',
           name: 'AuditLogs',
           component: () => import('@/views/AuditLogsView.vue'),
-          meta: { title: 'Audit Logs' },
+          meta: { title: 'Audit Logs', permission: 'audit:read' },
         },
         {
           path: 'users',
           name: 'Users',
           component: () => import('@/views/UsersView.vue'),
-          meta: { title: 'Users' },
+          meta: { title: 'Users', permission: 'users:read' },
         },
         {
           path: 'roles',
           name: 'Roles',
           component: () => import('@/views/RolesView.vue'),
-          meta: { title: 'Roles' },
+          meta: { title: 'Roles', permission: 'roles:read' },
         },
         {
           path: 'permissions',
           name: 'Permissions',
           component: () => import('@/views/PermissionsView.vue'),
-          meta: { title: 'Permissions' },
+          meta: { title: 'Permissions', permission: 'permissions:read' },
         },
         {
           path: 'sdn',
           name: 'Sdn',
           component: () => import('@/views/SdnView.vue'),
-          meta: { title: 'SDN Control' },
+          meta: { title: 'SDN Control', permission: 'sdn:read' },
         },
       ],
     },
@@ -93,6 +93,11 @@ router.beforeEach(async (to) => {
 
   if (!auth.isAuthenticated) {
     return '/login'
+  }
+
+  const perm = to.meta.permission as string | undefined
+  if (perm && !auth.hasPermission(perm)) {
+    return '/403'
   }
 
   return true

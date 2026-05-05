@@ -31,7 +31,7 @@ public class RuleController {
 
     @Operation(summary = "List rules with filters")
     @GetMapping
-    @PreAuthorize("hasAuthority('policies:read')")
+    @PreAuthorize("hasAuthority('rules:read')")
     public ApiResponse<PageDTO<RuleResponse>> list(
             @Parameter(description = "Rule type: flow_block, rate_limit, traffic_mirror, alert_suppress") @RequestParam(required = false) String ruleType,
             @Parameter(description = "Action: block, allow, mirror, log") @RequestParam(required = false) String action,
@@ -42,7 +42,7 @@ public class RuleController {
 
     @Operation(summary = "Get rule by ID")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('policies:read')")
+    @PreAuthorize("hasAuthority('rules:read')")
     public ApiResponse<RuleResponse> get(@Parameter(description = "Rule ID") @PathVariable Long id) {
         return ApiResponse.success(ruleService.getById(id));
     }
@@ -50,7 +50,7 @@ public class RuleController {
     @Operation(summary = "Create new rule")
     @ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201"), @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid rule config")})
     @PostMapping
-    @PreAuthorize("hasAuthority('policies:manage')")
+    @PreAuthorize("hasAuthority('rules:manage')")
     public ApiResponse<RuleResponse> create(@Valid @RequestBody RuleRequest request) {
         return ApiResponse.created(ruleService.create(request));
     }
@@ -58,7 +58,7 @@ public class RuleController {
     @Operation(summary = "Update existing rule")
     @ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200"), @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404")})
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('policies:manage')")
+    @PreAuthorize("hasAuthority('rules:manage')")
     public ApiResponse<RuleResponse> update(@PathVariable Long id, @Valid @RequestBody RuleRequest request) {
         return ApiResponse.success(ruleService.update(id, request));
     }
@@ -66,7 +66,7 @@ public class RuleController {
     @Operation(summary = "Delete rule")
     @ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200"), @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404")})
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('policies:manage')")
+    @PreAuthorize("hasAuthority('rules:manage')")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         ruleService.delete(id);
         return ApiResponse.success();
@@ -74,21 +74,21 @@ public class RuleController {
 
     @Operation(summary = "Enable rule")
     @PatchMapping("/{id}/enable")
-    @PreAuthorize("hasAuthority('policies:manage')")
+    @PreAuthorize("hasAuthority('rules:manage')")
     public ApiResponse<RuleResponse> enable(@PathVariable Long id) {
         return ApiResponse.success(ruleService.setEnabled(id, true));
     }
 
     @Operation(summary = "Disable rule")
     @PatchMapping("/{id}/disable")
-    @PreAuthorize("hasAuthority('policies:manage')")
+    @PreAuthorize("hasAuthority('rules:manage')")
     public ApiResponse<RuleResponse> disable(@PathVariable Long id) {
         return ApiResponse.success(ruleService.setEnabled(id, false));
     }
 
     @Operation(summary = "Update rule priority")
     @PutMapping("/{id}/priority")
-    @PreAuthorize("hasAuthority('policies:manage')")
+    @PreAuthorize("hasAuthority('rules:manage')")
     public ApiResponse<RuleResponse> updatePriority(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
         return ApiResponse.success(ruleService.updatePriority(id, body.get("priority")));
     }

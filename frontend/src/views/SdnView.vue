@@ -85,7 +85,7 @@
               <t-textarea v-model="blockForm.reason" :rows="2" :placeholder="$t('sdn.reasonPlaceholder')" />
             </t-form-item>
             <t-form-item>
-              <t-button theme="danger" :loading="blocking" @click="handleBlock">{{ $t('sdn.blockBtn') }}</t-button>
+              <t-button v-if="auth.hasPermission('sdn:manage')" theme="danger" :loading="blocking" @click="handleBlock">{{ $t('sdn.blockBtn') }}</t-button>
             </t-form-item>
           </t-form>
         </t-card>
@@ -100,7 +100,7 @@
           </template>
           <div class="rules-apply">
             <p class="desc">{{ $t('sdn.rulesDesc') }}</p>
-            <t-button theme="primary" :loading="applying" @click="handleApplyRules">
+            <t-button v-if="auth.hasPermission('sdn:manage')" theme="primary" :loading="applying" @click="handleApplyRules">
               <template #icon><UploadIcon /></template>
               {{ $t('sdn.applyBtn') }}
             </t-button>
@@ -143,7 +143,9 @@ import {
 import { get, post } from '@/api/client'
 import type { FlowBlockRequest, SdnOperationResponse } from '@/api/types'
 import SkeletonCard from '@/components/skeleton/SkeletonCard.vue'
+import { useAuthStore } from '@/stores/auth'
 
+const auth = useAuthStore()
 const loading = ref(false)
 const blocking = ref(false)
 const applying = ref(false)

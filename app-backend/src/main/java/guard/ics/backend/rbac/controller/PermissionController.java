@@ -27,7 +27,7 @@ public class PermissionController {
 
     @Operation(summary = "List all permissions")
     @GetMapping
-    @PreAuthorize("hasAuthority('users:read')")
+    @PreAuthorize("hasAuthority('permissions:read')")
     public ApiResponse<List<PermissionResponse>> list() {
         return ApiResponse.success(permissionService.list());
     }
@@ -35,7 +35,7 @@ public class PermissionController {
     @Operation(summary = "Create new permission")
     @ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201"), @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409")})
     @PostMapping
-    @PreAuthorize("hasAuthority('users:manage')")
+    @PreAuthorize("hasAuthority('permissions:manage')")
     public ApiResponse<PermissionResponse> create(@RequestBody Map<String, Object> body) {
         String name = (String) body.get("name");
         String description = (String) body.get("description");
@@ -47,7 +47,7 @@ public class PermissionController {
     @Operation(summary = "Update permission")
     @ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200"), @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404")})
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('users:manage')")
+    @PreAuthorize("hasAuthority('permissions:manage')")
     public ApiResponse<PermissionResponse> update(
             @Parameter(description = "Permission ID") @PathVariable Long id,
             @RequestBody Map<String, Object> body) {
@@ -71,7 +71,7 @@ public class PermissionController {
     @Operation(summary = "Delete permission")
     @ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200"), @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404")})
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('users:manage')")
+    @PreAuthorize("hasAuthority('permissions:manage')")
     public ApiResponse<Void> delete(@Parameter(description = "Permission ID") @PathVariable Long id) {
         permissionService.delete(id);
         return ApiResponse.success();

@@ -63,7 +63,7 @@ class AuthControllerTest {
                 .createdAt(Instant.now()).updatedAt(Instant.now()).build();
         when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
         when(userService.getById(1L)).thenReturn(new UserResponse(1L, "admin", "admin@test.com",
-                "Admin", true, Set.of("ROLE_ADMIN"), Instant.now(), Instant.now(), null));
+                "Admin", true, Set.of("ROLE_ADMIN"), Set.of("alerts:read"), Instant.now(), Instant.now(), null));
 
         MockHttpServletRequest req = new MockHttpServletRequest();
 
@@ -119,7 +119,7 @@ class AuthControllerTest {
         ctx.setAuthentication(auth);
 
         UserResponse expectedResponse = new UserResponse(1L, "admin", "admin@test.com",
-                "Admin", true, Set.of("ROLE_ADMIN"), Instant.now(), Instant.now(), null);
+                "Admin", true, Set.of("ROLE_ADMIN"), Set.of("alerts:read"), Instant.now(), Instant.now(), null);
         when(userService.getById(1L)).thenReturn(expectedResponse);
         UserEntity user = UserEntity.builder().id(1L).username("admin").build();
         when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));

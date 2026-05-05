@@ -6,8 +6,8 @@
         <h2>{{ $t('users.title') }}</h2>
       </div>
       <div class="header-actions">
-        <t-button variant="outline" @click="openRoleDialog">{{ $t('users.manageRoles') }}</t-button>
-        <t-button theme="primary" @click="openCreate">
+        <t-button v-if="auth.hasPermission('roles:read')" variant="outline" @click="openRoleDialog">{{ $t('users.manageRoles') }}</t-button>
+        <t-button v-if="auth.hasPermission('users:manage')" theme="primary" @click="openCreate">
           <template #icon><AddIcon /></template>
           {{ $t('users.newUser') }}
         </t-button>
@@ -36,8 +36,8 @@
           </template>
           <template #createdAt="{ row }"><span class="tech-font">{{ formatDateTime(row.createdAt) }}</span></template>
           <template #actions="{ row }">
-            <t-button variant="text" theme="primary" size="small" @click="openEdit(row)">{{ $t('common.edit') }}</t-button>
-            <t-popconfirm :content="$t('users.deleteConfirm')" @confirm="handleDelete(row.id)">
+            <t-button v-if="auth.hasPermission('users:manage')" variant="text" theme="primary" size="small" @click="openEdit(row)">{{ $t('common.edit') }}</t-button>
+            <t-popconfirm v-if="auth.hasPermission('users:manage')" :content="$t('users.deleteConfirm')" @confirm="handleDelete(row.id)">
               <t-button variant="text" theme="danger" size="small">{{ $t('common.delete') }}</t-button>
             </t-popconfirm>
           </template>
@@ -98,8 +98,10 @@ import type { UserResponse, RoleResponse, CreateUserRequest, PageDTO } from '@/a
 import type { FormInstanceFunctions, FormRules } from 'tdesign-vue-next'
 import { formatDateTime } from '@/composables/useFormat'
 import SkeletonTable from '@/components/skeleton/SkeletonTable.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const auth = useAuthStore()
 const loading = ref(false)
 const saving = ref(false)
 const users = ref<UserResponse[]>([])

@@ -5,7 +5,7 @@
         <span class="header-icon header-icon-primary"><SettingIcon size="22px" /></span>
         <h2>{{ $t('rules.title') }}</h2>
       </div>
-      <t-button theme="primary" @click="openCreate">
+      <t-button v-if="auth.hasPermission('rules:manage')" theme="primary" @click="openCreate">
         <template #icon><AddIcon /></template>
         {{ $t('rules.newRule') }}
       </t-button>
@@ -53,12 +53,13 @@
             <t-tag :theme="actionTag(row.action)" size="small" variant="dark">{{ $t(`ruleAction.${row.action}`, row.action.toUpperCase()) }}</t-tag>
           </template>
           <template #enabled="{ row }">
-            <t-switch :value="row.enabled" @change="(val: boolean) => toggleEnabled(row, val)" />
+            <t-switch v-if="auth.hasPermission('rules:manage')" :value="row.enabled" @change="(val: boolean) => toggleEnabled(row, val)" />
+            <t-tag v-else :theme="row.enabled ? 'success' : 'default'" variant="light" size="small">{{ row.enabled ? $t('common.enabled') : $t('common.disabled') }}</t-tag>
           </template>
           <template #createdAt="{ row }"><span class="tech-font">{{ formatDateTime(row.createdAt) }}</span></template>
           <template #actions="{ row }">
-            <t-button variant="text" theme="primary" size="small" @click="openEdit(row)">{{ $t('common.edit') }}</t-button>
-            <t-popconfirm :content="$t('rules.deleteConfirm')" @confirm="handleDelete(row.id)">
+            <t-button v-if="auth.hasPermission('rules:manage')" variant="text" theme="primary" size="small" @click="openEdit(row)">{{ $t('common.edit') }}</t-button>
+            <t-popconfirm v-if="auth.hasPermission('rules:manage')" :content="$t('rules.deleteConfirm')" @confirm="handleDelete(row.id)">
               <t-button variant="text" theme="danger" size="small">{{ $t('common.delete') }}</t-button>
             </t-popconfirm>
           </template>
@@ -130,7 +131,10 @@ import { SettingIcon, AddIcon } from 'tdesign-icons-vue-next'
 import { get, post, put, del, patch } from '@/api/client'
 import type { RuleResponse, RuleRequest, PageDTO } from '@/api/types'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '@/stores/auth'
 import type { FormInstanceFunctions, FormRules } from 'tdesign-vue-next'
+
+const auth = useAuthStore()
 import { formatDateTime } from '@/composables/useFormat'
 import { actionTag } from '@/composables/useSeverity'
 import SkeletonTable from '@/components/skeleton/SkeletonTable.vue'

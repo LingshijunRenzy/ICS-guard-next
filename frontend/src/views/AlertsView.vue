@@ -113,7 +113,7 @@
           </template>
           <template #triggeredAt="{ row }"><span class="tech-font">{{ formatDateTime(row.triggeredAt) }}</span></template>
           <template #actions="{ row }">
-            <t-dropdown :options="getActionOptions(row)" @click="(item: any) => handleAction(item.value, row)">
+            <t-dropdown v-if="auth.hasPermission('alerts:manage')" :options="getActionOptions(row)" @click="(item: any) => handleAction(item.value, row)">
               <t-button variant="text" theme="primary" size="small">
                 {{ $t('common.actions') }} <ChevronDownIcon />
               </t-button>
@@ -148,8 +148,10 @@ import { formatDateTime } from '@/composables/useFormat'
 import { severityTag, statusTag } from '@/composables/useSeverity'
 import SkeletonCard from '@/components/skeleton/SkeletonCard.vue'
 import SkeletonTable from '@/components/skeleton/SkeletonTable.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const auth = useAuthStore()
 const loading = ref(false)
 const alerts = ref<AlertResponse[]>([])
 const pageNum = ref(1)

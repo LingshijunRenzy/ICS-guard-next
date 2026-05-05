@@ -13,6 +13,7 @@ public record UserResponse(
         @Schema(description = "Display name") String displayName,
         @Schema(description = "Whether the account is enabled") boolean enabled,
         @Schema(description = "Assigned role names") Set<String> roles,
+        @Schema(description = "Expanded permission names from all roles") Set<String> permissions,
         @Schema(description = "Account creation time") Instant createdAt,
         @Schema(description = "Last update time") Instant updatedAt,
         @Schema(description = "User preference profile") UserProfileResponse profile

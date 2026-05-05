@@ -40,7 +40,7 @@ class PermissionControllerMvcTest {
         when(permissionService.list()).thenReturn(List.of(
                 new PermissionResponse(1L, "alerts:read", "Read alerts", null, null, null, null, null)));
 
-        mockMvc.perform(get("/api/permissions").with(user("admin").authorities(() -> "users:read")))
+        mockMvc.perform(get("/api/permissions").with(user("admin").authorities(() -> "permissions:read")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data[0].name").value("alerts:read"));
@@ -59,7 +59,7 @@ class PermissionControllerMvcTest {
                         Instant.parse("2026-05-01T00:00:00Z"), Instant.parse("2026-05-01T00:00:00Z")));
 
         mockMvc.perform(post("/api/permissions")
-                        .with(user("admin").authorities(() -> "users:manage"))
+                        .with(user("admin").authorities(() -> "permissions:manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"new:perm\",\"description\":\"New permission\"}"))
                 .andExpect(status().isOk())
@@ -74,7 +74,7 @@ class PermissionControllerMvcTest {
                 .thenReturn(new PermissionResponse(15L, "meta:perm", "Desc", Map.of("category", "core"), null, null, null, null));
 
         mockMvc.perform(post("/api/permissions")
-                        .with(user("admin").authorities(() -> "users:manage"))
+                        .with(user("admin").authorities(() -> "permissions:manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"meta:perm\",\"metadata\":{\"category\":\"core\"}}"))
                 .andExpect(status().isOk())
@@ -88,7 +88,7 @@ class PermissionControllerMvcTest {
                 .thenReturn(new PermissionResponse(1L, "updated:perm", "Updated", null, null, null, null, null));
 
         mockMvc.perform(put("/api/permissions/1")
-                        .with(user("admin").authorities(() -> "users:manage"))
+                        .with(user("admin").authorities(() -> "permissions:manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"updated:perm\"}"))
                 .andExpect(status().isOk())
@@ -101,7 +101,7 @@ class PermissionControllerMvcTest {
         doNothing().when(permissionService).delete(1L);
 
         mockMvc.perform(delete("/api/permissions/1")
-                        .with(user("admin").authorities(() -> "users:manage")))
+                        .with(user("admin").authorities(() -> "permissions:manage")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
     }
@@ -109,7 +109,7 @@ class PermissionControllerMvcTest {
     @Test
     void shouldReturn403OnCreateWithoutAuth() throws Exception {
         mockMvc.perform(post("/api/permissions")
-                        .with(user("viewer").authorities(() -> "users:read"))
+                        .with(user("viewer").authorities(() -> "permissions:read"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"new:perm\"}"))
                 .andExpect(status().isForbidden());
@@ -121,7 +121,7 @@ class PermissionControllerMvcTest {
                 .thenThrow(new ResourceNotFoundException("Permission", 99L));
 
         mockMvc.perform(put("/api/permissions/99")
-                        .with(user("admin").authorities(() -> "users:manage"))
+                        .with(user("admin").authorities(() -> "permissions:manage"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"ghost\"}"))
                 .andExpect(status().isNotFound());

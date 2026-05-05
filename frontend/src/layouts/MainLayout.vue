@@ -11,20 +11,20 @@ v-model:expanded="expandedMenus"
         @change="handleMenuChange"
       >
         <!-- 监控管理组 -->
-        <t-menu-group :title="$t('layout.groupMonitor')">
-          <t-menu-item value="/">
+        <t-menu-group :title="$t('layout.groupMonitor')" v-if="auth.hasPermission('dashboard:read') || auth.hasPermission('alerts:read') || auth.hasPermission('rules:read')">
+          <t-menu-item value="/" v-if="auth.hasPermission('dashboard:read')">
             <template #icon>
               <DashboardIcon />
             </template>
             {{ $t('layout.dashboard') }}
           </t-menu-item>
-          <t-menu-item value="/alerts">
+          <t-menu-item value="/alerts" v-if="auth.hasPermission('alerts:read')">
             <template #icon>
               <NotificationIcon />
             </template>
             {{ $t('layout.alerts') }}
           </t-menu-item>
-          <t-menu-item value="/rules">
+          <t-menu-item value="/rules" v-if="auth.hasPermission('rules:read')">
             <template #icon>
               <SettingIcon />
             </template>
@@ -33,20 +33,20 @@ v-model:expanded="expandedMenus"
         </t-menu-group>
 
         <!-- 网络管理组 -->
-        <t-menu-group :title="$t('layout.groupNetwork')">
-          <t-menu-item value="/topology">
+        <t-menu-group :title="$t('layout.groupNetwork')" v-if="auth.hasPermission('topology:read') || auth.hasPermission('metrics:read') || auth.hasPermission('sdn:read')">
+          <t-menu-item value="/topology" v-if="auth.hasPermission('topology:read')">
             <template #icon>
               <ShareIcon />
             </template>
             {{ $t('layout.topology') }}
           </t-menu-item>
-          <t-menu-item value="/traffic">
+          <t-menu-item value="/traffic" v-if="auth.hasPermission('metrics:read')">
             <template #icon>
               <LinkIcon />
             </template>
             {{ $t('layout.traffic') }}
           </t-menu-item>
-          <t-menu-item value="/sdn">
+          <t-menu-item value="/sdn" v-if="auth.hasPermission('sdn:read')">
             <template #icon>
               <DesktopIcon />
             </template>
@@ -55,20 +55,20 @@ v-model:expanded="expandedMenus"
         </t-menu-group>
 
         <!-- 系统管理组 -->
-        <t-menu-group :title="$t('layout.groupManagement')">
-          <t-menu-item value="/audit-logs">
+        <t-menu-group :title="$t('layout.groupManagement')" v-if="auth.hasPermission('audit:read') || auth.hasPermission('users:read') || auth.hasPermission('roles:read') || auth.hasPermission('permissions:read')">
+          <t-menu-item value="/audit-logs" v-if="auth.hasPermission('audit:read')">
             <template #icon>
               <FileIcon />
             </template>
             {{ $t('layout.auditLogs') }}
           </t-menu-item>
-          <t-submenu :value="'users-root'" :title="$t('layout.groupUsersRoles')">
+          <t-submenu :value="'users-root'" :title="$t('layout.groupUsersRoles')" v-if="auth.hasPermission('users:read') || auth.hasPermission('roles:read') || auth.hasPermission('permissions:read')">
             <template #icon>
               <UserIcon />
             </template>
-            <t-menu-item value="/users">{{ $t('layout.userManage') }}</t-menu-item>
-            <t-menu-item value="/roles">{{ $t('layout.roleManage') }}</t-menu-item>
-            <t-menu-item value="/permissions">{{ $t('layout.permissionManage') }}</t-menu-item>
+            <t-menu-item value="/users" v-if="auth.hasPermission('users:read')">{{ $t('layout.userManage') }}</t-menu-item>
+            <t-menu-item value="/roles" v-if="auth.hasPermission('roles:read')">{{ $t('layout.roleManage') }}</t-menu-item>
+            <t-menu-item value="/permissions" v-if="auth.hasPermission('permissions:read')">{{ $t('layout.permissionManage') }}</t-menu-item>
           </t-submenu>
         </t-menu-group>
       </t-menu>
@@ -135,7 +135,7 @@ const expandedMenus = ref<string[]>([])
 watch(
   () => route.path,
   (path) => {
-    if (path.startsWith('/users') || path.startsWith('/roles')) {
+    if (path.startsWith('/users') || path.startsWith('/roles') || path.startsWith('/permissions')) {
       if (!expandedMenus.value.includes('users-root')) {
         expandedMenus.value = [...expandedMenus.value, 'users-root']
       }
