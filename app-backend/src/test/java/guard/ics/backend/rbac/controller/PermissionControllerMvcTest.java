@@ -1,5 +1,6 @@
 package guard.ics.backend.rbac.controller;
 
+import guard.ics.backend.common.exception.ResourceNotFoundException;
 import guard.ics.backend.kafka.producer.AuditLogProducer;
 import guard.ics.backend.kafka.producer.ModelEventProducer;
 import guard.ics.backend.rbac.dto.PermissionResponse;
@@ -8,14 +9,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -43,5 +48,64 @@ class PermissionControllerMvcTest {
     void shouldReturn403WithoutAuth() throws Exception {
         mockMvc.perform(get("/api/permissions").with(user("user")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldCreatePermission() throws Exception {
+        when(permissionService.create(eq("new:perm"), eq("New permission")))
+                .thenReturn(new PermissionResponse(14L, "new:perm", "New permission"));
+
+        mockMvc.perform(post("/api/permissions")
+                        .with(user("admin").authorities(() -> "users:manage"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"new:perm\",\"description\":\"New permission\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(201))
+                .andExpect(jsonPath("$.data.name").value("new:perm"));
+    }
+
+    @Test
+    void shouldUpdatePermission() throws Exception {
+        when(permissionService.update(eq(1L), eq("updated:perm"), any()))
+                .thenReturn(new PermissionResponse(1L, "updated:perm", "Updated"));
+
+        mockMvc.perform(put("/api/permissions/1")
+                        .with(user("admin").authorities(() -> "users:manage"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"updated:perm\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.name").value("updated:perm"));
+    }
+
+    @Test
+    void shouldDeletePermission() throws Exception {
+        doNothing().when(permissionService).delete(1L);
+
+        mockMvc.perform(delete("/api/permissions/1")
+                        .with(user("admin").authorities(() -> "users:manage")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
+    void shouldReturn403OnCreateWithoutAuth() throws Exception {
+        mockMvc.perform(post("/api/permissions")
+                        .with(user("viewer").authorities(() -> "users:read"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"new:perm\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldReturn404WhenUpdatingNonexistent() throws Exception {
+        when(permissionService.update(eq(99L), any(), any()))
+                .thenThrow(new ResourceNotFoundException("Permission", 99L));
+
+        mockMvc.perform(put("/api/permissions/99")
+                        .with(user("admin").authorities(() -> "users:manage"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"ghost\"}"))
+                .andExpect(status().isNotFound());
     }
 }
