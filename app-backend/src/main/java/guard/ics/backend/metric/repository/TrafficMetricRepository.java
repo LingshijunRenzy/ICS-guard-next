@@ -7,8 +7,11 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public interface TrafficMetricRepository extends JpaRepository<TrafficMetricEntity, Long>, JpaSpecificationExecutor<TrafficMetricEntity> {
+
+    Optional<TrafficMetricEntity> findByTraceId(String traceId);
 
     @Query("SELECT t.sourceIp, SUM(t.bytesIn + t.bytesOut) as total FROM TrafficMetricEntity t " +
            "WHERE t.capturedAt >= :since GROUP BY t.sourceIp ORDER BY total DESC")

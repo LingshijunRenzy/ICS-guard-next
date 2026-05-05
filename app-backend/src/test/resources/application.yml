@@ -23,3 +23,5 @@ spring:
 app:
   controller:
     base-url: http://localhost:8000
+  error:
+    include-details: false

@@ -21,10 +21,14 @@ public class TopologyEventConsumer {
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     }
 
-    @KafkaListener(topics = "ics.topology.events", groupId = "#{T(java.util.UUID).randomUUID().toString()}")
+    @KafkaListener(topics = "ics.topology.events", groupId = "topology-event-consumer")
     public void consume(String message) {
         try {
             TopologyEventEntity event = objectMapper.readValue(message, TopologyEventEntity.class);
+            if (topologyEventRepository.findByTraceId(event.getTraceId()).isPresent()) {
+                log.debug("Duplicate topology event skipped: traceId={}", event.getTraceId());
+                return;
+            }
             event.setId(null);
             topologyEventRepository.save(event);
             log.info("Topology event saved: traceId={}, type={}, device={}",

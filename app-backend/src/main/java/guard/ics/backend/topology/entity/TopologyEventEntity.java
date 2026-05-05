@@ -2,6 +2,8 @@ package guard.ics.backend.topology.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -44,6 +46,7 @@ public class TopologyEventEntity {
     @Column(length = 32)
     private String status;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "JSONB")
     private String metadata;
 

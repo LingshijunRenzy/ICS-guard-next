@@ -2,6 +2,8 @@ package guard.ics.backend.audit.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -35,6 +37,7 @@ public class AuditLogEntity {
     @Column(name = "resource_id", length = 64)
     private String resourceId;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "JSONB")
     private String detail;
 

@@ -21,10 +21,14 @@ public class TrafficMetricConsumer {
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     }
 
-    @KafkaListener(topics = "ics.traffic.metrics", groupId = "#{T(java.util.UUID).randomUUID().toString()}")
+    @KafkaListener(topics = "ics.traffic.metrics", groupId = "traffic-metrics-consumer")
     public void consume(String message) {
         try {
             TrafficMetricEntity metric = objectMapper.readValue(message, TrafficMetricEntity.class);
+            if (trafficMetricRepository.findByTraceId(metric.getTraceId()).isPresent()) {
+                log.debug("Duplicate traffic metric skipped: traceId={}", metric.getTraceId());
+                return;
+            }
             metric.setId(null);
             trafficMetricRepository.save(metric);
             log.debug("Traffic metric saved: traceId={}, {}:{} -> {}", metric.getTraceId(),

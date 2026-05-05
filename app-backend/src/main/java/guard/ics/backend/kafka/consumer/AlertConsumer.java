@@ -1,6 +1,7 @@
 package guard.ics.backend.kafka.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import guard.ics.backend.alert.dto.AlertResponse;
 import guard.ics.backend.alert.entity.AlertEntity;
 import guard.ics.backend.alert.repository.AlertRepository;
@@ -20,11 +21,11 @@ public class AlertConsumer {
 
     public AlertConsumer(AlertRepository alertRepository, AlertWebSocketService alertWebSocketService) {
         this.alertRepository = alertRepository;
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.alertWebSocketService = alertWebSocketService;
     }
 
-    @KafkaListener(topics = "ics.threat.alerts", groupId = "#{T(java.util.UUID).randomUUID().toString()}")
+    @KafkaListener(topics = "ics.threat.alerts", groupId = "alert-consumer")
     public void consume(String message) {
         try {
             AlertEntity alert = objectMapper.readValue(message, AlertEntity.class);

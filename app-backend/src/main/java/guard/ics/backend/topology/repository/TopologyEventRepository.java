@@ -6,8 +6,11 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface TopologyEventRepository extends JpaRepository<TopologyEventEntity, Long>, JpaSpecificationExecutor<TopologyEventEntity> {
+
+    Optional<TopologyEventEntity> findByTraceId(String traceId);
 
     @Query(value = "SELECT DISTINCT ON (device_id) * FROM topology_events ORDER BY device_id, occurred_at DESC", nativeQuery = true)
     List<TopologyEventEntity> findLatestPerDevice();
