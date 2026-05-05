@@ -11,6 +11,7 @@
       </t-button>
     </div>
 
+    <!-- Stat Cards Row -->
     <t-row :gutter="[16, 16]" class="stat-row">
       <template v-if="loading">
         <t-col v-for="n in 4" :key="'sk' + n" :span="3"><SkeletonCard /></t-col>
@@ -66,6 +67,7 @@
       </template>
     </t-row>
 
+    <!-- ECharts Row 1: Alerts by Severity (Pie) + Alerts by Status (Doughnut) -->
     <t-row :gutter="[16, 16]" class="chart-row">
       <t-col :span="6">
         <SkeletonList v-if="loading" :items="3" />
@@ -75,18 +77,7 @@
               <span><ChartPieIcon size="18px" class="card-header-icon" /> {{ $t('dashboard.alertsBySeverity') }}</span>
             </div>
           </template>
-          <div class="list-container">
-            <template v-if="hasEntries(data.alertsBySeverity)">
-              <div v-for="(count, sev) in data.alertsBySeverity" :key="sev" class="list-item">
-                <span class="list-label">{{ $t(`severity.${sev}`, sev.toUpperCase()) }}</span>
-                <div class="progress-wrapper">
-                  <t-progress :percentage="calcPercent(count, data.totalAlerts)" :color="severityColor(sev)" :label="false" :stroke-width="10" />
-                </div>
-                <span class="list-value">{{ count }}</span>
-              </div>
-            </template>
-            <t-empty v-else :description="$t('common.noData')" />
-          </div>
+          <v-chart class="chart-wrapper" :option="severityChartOption" autoresize />
         </t-card>
       </t-col>
       <t-col :span="6">
@@ -97,22 +88,12 @@
               <span><ViewListIcon size="18px" class="card-header-icon" /> {{ $t('dashboard.alertsByStatus') }}</span>
             </div>
           </template>
-          <div class="list-container">
-            <template v-if="hasEntries(data.alertsByStatus)">
-              <div v-for="(count, st) in data.alertsByStatus" :key="st" class="list-item">
-                <span class="list-label">{{ $t(`alertStatus.${st}`, st.toUpperCase()) }}</span>
-                <div class="progress-wrapper">
-                  <t-progress :percentage="calcPercent(count, data.totalAlerts)" :color="statusColor(st)" :label="false" :stroke-width="10" />
-                </div>
-                <span class="list-value">{{ count }}</span>
-              </div>
-            </template>
-            <t-empty v-else :description="$t('common.noData')" />
-          </div>
+          <v-chart class="chart-wrapper" :option="statusChartOption" autoresize />
         </t-card>
       </t-col>
     </t-row>
 
+    <!-- ECharts Row 2: Top Sources + Top Destinations (Horizontal Bar) -->
     <t-row :gutter="[16, 16]" class="chart-row">
       <t-col :span="6">
         <SkeletonList v-if="loading" :items="4" />
@@ -122,19 +103,7 @@
               <span><UploadIcon size="18px" class="card-header-icon" /> {{ $t('dashboard.topSources') }}</span>
             </div>
           </template>
-          <div class="list-container">
-            <template v-if="data.trafficSummary?.topSources?.length">
-              <div v-for="(e, idx) in data.trafficSummary.topSources" :key="e.ip" class="list-item-traffic">
-                <div class="traffic-info">
-                  <span class="traffic-rank" :class="'rank-' + (idx + 1)">{{ idx + 1 }}</span>
-                  <span class="traffic-ip mono">{{ e.ip }}</span>
-                  <span class="traffic-bytes">{{ formatBytes(e.totalBytes) }}</span>
-                </div>
-                <div class="traffic-bar" :style="{ width: calcBarPercent(e.totalBytes, data.trafficSummary.topSources[0].totalBytes) + '%', backgroundColor: 'var(--color-primary)' }" />
-              </div>
-            </template>
-            <t-empty v-else :description="$t('dashboard.noTraffic')" />
-          </div>
+          <v-chart class="chart-wrapper" :option="sourceChartOption" autoresize />
         </t-card>
       </t-col>
       <t-col :span="6">
@@ -145,23 +114,12 @@
               <span><DownloadIcon size="18px" class="card-header-icon" /> {{ $t('dashboard.topDestinations') }}</span>
             </div>
           </template>
-          <div class="list-container">
-            <template v-if="data.trafficSummary?.topDestinations?.length">
-              <div v-for="(e, idx) in data.trafficSummary.topDestinations" :key="e.ip" class="list-item-traffic">
-                <div class="traffic-info">
-                  <span class="traffic-rank" :class="'rank-' + (idx + 1)">{{ idx + 1 }}</span>
-                  <span class="traffic-ip mono">{{ e.ip }}</span>
-                  <span class="traffic-bytes">{{ formatBytes(e.totalBytes) }}</span>
-                </div>
-                <div class="traffic-bar" :style="{ width: calcBarPercent(e.totalBytes, data.trafficSummary.topDestinations[0].totalBytes) + '%', backgroundColor: 'var(--color-success)' }" />
-              </div>
-            </template>
-            <t-empty v-else :description="$t('dashboard.noTraffic')" />
-          </div>
+          <v-chart class="chart-wrapper" :option="destChartOption" autoresize />
         </t-card>
       </t-col>
     </t-row>
 
+    <!-- Recent Alerts Table -->
     <SkeletonTable v-if="loading" :rows="5" :cols="7" />
     <t-card v-else :bordered="false" class="table-card">
       <template #header>
@@ -190,6 +148,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { graphic } from 'echarts/core'
+import VChart from 'vue-echarts'
 import {
   RefreshIcon, ErrorCircleFilledIcon, CpuIcon, ChartLineIcon,
   DesktopIcon, ChartPieIcon, ViewListIcon, UploadIcon, DownloadIcon,
@@ -198,11 +158,12 @@ import {
 import { get } from '@/api/client'
 import type { DashboardResponse } from '@/api/types'
 import { useI18n } from 'vue-i18n'
-import { formatBytes, formatDateTime, calcPercent, calcBarPercent, hasEntries } from '@/composables/useFormat'
-import { severityTag, statusTag, severityColor, statusColor } from '@/composables/useSeverity'
+import { formatBytes, formatDateTime } from '@/composables/useFormat'
+import { severityTag, statusTag } from '@/composables/useSeverity'
 import SkeletonCard from '@/components/skeleton/SkeletonCard.vue'
 import SkeletonList from '@/components/skeleton/SkeletonList.vue'
 import SkeletonTable from '@/components/skeleton/SkeletonTable.vue'
+
 
 const { t } = useI18n()
 const loading = ref(false)
@@ -229,6 +190,189 @@ const alertColumns = computed(() => [
   { colKey: 'triggeredAt', title: t('dashboard.triggeredAt'), width: 180 },
 ])
 
+// ── ECharts colour mapping ──
+const SEVERITY_COLORS: Record<string, string> = {
+  critical: '#e34d59',
+  high: '#ed7b2f',
+  medium: '#0052d9',
+  low: '#00a870',
+  info: '#909399',
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  new: '#e34d59',
+  acknowledged: '#ed7b2f',
+  investigating: '#0052d9',
+  resolved: '#00a870',
+  closed: '#909399',
+}
+
+// ── Severity Pie Chart ──
+const severityChartOption = computed(() => {
+  const entries = Object.entries(data.alertsBySeverity)
+  if (!entries.length) return noDataOption(t('common.noData'))
+
+  return {
+    tooltip: {
+      trigger: 'item',
+      formatter: (p: { name: string; value: number; percent: number }) =>
+        `<strong>${p.name}</strong><br/>${t('dashboard.threatAlerts')}: ${p.value} (${p.percent}%)`,
+    },
+    legend: {
+      bottom: 0,
+      textStyle: { fontSize: 12 },
+      itemWidth: 10,
+      itemHeight: 10,
+    },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '70%'],
+      center: ['50%', '45%'],
+      avoidLabelOverlap: true,
+      padAngle: 2,
+      itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
+      label: { show: false },
+      emphasis: {
+        label: { show: true, fontWeight: 'bold', fontSize: 14 },
+        itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' },
+      },
+      data: entries.map(([name, value]) => ({
+        name: t(`severity.${name}`, name.toUpperCase()),
+        value,
+        itemStyle: { color: SEVERITY_COLORS[name] ?? '#909399' },
+      })),
+    }],
+  }
+})
+
+// ── Status Doughnut Chart ──
+const statusChartOption = computed(() => {
+  const entries = Object.entries(data.alertsByStatus)
+  if (!entries.length) return noDataOption(t('common.noData'))
+
+  return {
+    tooltip: {
+      trigger: 'item',
+      formatter: (p: { name: string; value: number; percent: number }) =>
+        `<strong>${p.name}</strong><br/>${t('dashboard.threatAlerts')}: ${p.value} (${p.percent}%)`,
+    },
+    legend: {
+      bottom: 0,
+      textStyle: { fontSize: 12 },
+      itemWidth: 10,
+      itemHeight: 10,
+    },
+    series: [{
+      type: 'pie',
+      radius: ['50%', '75%'],
+      center: ['50%', '45%'],
+      avoidLabelOverlap: true,
+      padAngle: 2,
+      itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
+      label: { show: false },
+      emphasis: {
+        label: { show: true, fontWeight: 'bold', fontSize: 14 },
+        itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' },
+      },
+      data: entries.map(([name, value]) => ({
+        name: t(`alertStatus.${name}`, name.toUpperCase()),
+        value,
+        itemStyle: { color: STATUS_COLORS[name] ?? '#909399' },
+      })),
+    }],
+  }
+})
+
+// ── Top Sources Horizontal Bar ──
+const sourceChartOption = computed(() => {
+  const entries = data.trafficSummary?.topSources
+  if (!entries?.length) return noDataOption(t('dashboard.noTraffic'))
+
+  const ips = entries.map(e => e.ip).reverse()
+  const bytes = entries.map(e => e.totalBytes).reverse()
+
+  return horizontalBarOption(ips, bytes, t('dashboard.bytes'))
+})
+
+// ── Top Destinations Horizontal Bar ──
+const destChartOption = computed(() => {
+  const entries = data.trafficSummary?.topDestinations
+  if (!entries?.length) return noDataOption(t('dashboard.noTraffic'))
+
+  const ips = entries.map(e => e.ip).reverse()
+  const bytes = entries.map(e => e.totalBytes).reverse()
+
+  return horizontalBarOption(ips, bytes, t('dashboard.bytes'), '#00a870')
+})
+
+// ── Shared helpers ──
+function noDataOption(msg: string) {
+  return {
+    title: { text: msg, left: 'center', top: 'center', textStyle: { color: '#909399', fontSize: 14, fontWeight: 400 } },
+    series: [{ type: 'pie', data: [], radius: 0 }],
+    xAxis: undefined as any,
+    yAxis: undefined as any,
+    tooltip: undefined as any,
+    legend: undefined as any,
+  }
+}
+
+function horizontalBarOption(
+  labels: string[],
+  values: number[],
+  unit: string,
+  barColor = '#0052d9',
+) {
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (p: { name: string; value: number }[]) =>
+        `<strong>${p[0].name}</strong><br/>${unit}: ${formatBytes(p[0].value)}`,
+      textStyle: { fontSize: 13 },
+    },
+    grid: { left: 20, right: 80, top: 10, bottom: 10, containLabel: true },
+    xAxis: {
+      type: 'value',
+      axisLabel: {
+        formatter: (v: number) => formatBytes(v),
+        fontSize: 11,
+        color: '#909399',
+      },
+      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
+    },
+    yAxis: {
+      type: 'category',
+      data: labels,
+      axisLabel: { fontSize: 12, fontFamily: 'SFMono-Regular, Consolas, monospace', width: 120, overflow: 'truncate' },
+      axisTick: { show: false },
+      axisLine: { show: false },
+    },
+    series: [{
+      type: 'bar',
+      data: values.map(v => ({
+        value: v,
+        itemStyle: {
+          color: new graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: barColor + '66' },
+            { offset: 1, color: barColor },
+          ]),
+          borderRadius: [0, 4, 4, 0],
+        },
+      })),
+      barWidth: 18,
+      label: {
+        show: true,
+        position: 'right',
+        formatter: (p: { value: number }) => formatBytes(p.value),
+        fontSize: 11,
+        fontFamily: 'SFMono-Regular, Consolas, monospace',
+        color: '#666',
+      },
+    }],
+  }
+}
+
 async function fetchData() {
   loading.value = true
   try {
@@ -252,4 +396,11 @@ onMounted(fetchData)
 }
 
 .card-header-icon { color: var(--color-primary); }
+
+/* Chart wrapper inside card */
+:deep(.chart-wrapper) {
+  width: 100%;
+  height: 280px;
+  min-height: 200px;
+}
 </style>

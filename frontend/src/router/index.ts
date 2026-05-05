@@ -57,6 +57,18 @@ const router = createRouter({
           meta: { title: 'Users' },
         },
         {
+          path: 'roles',
+          name: 'Roles',
+          component: () => import('@/views/RolesView.vue'),
+          meta: { title: 'Roles' },
+        },
+        {
+          path: 'permissions',
+          name: 'Permissions',
+          component: () => import('@/views/PermissionsView.vue'),
+          meta: { title: 'Permissions' },
+        },
+        {
           path: 'sdn',
           name: 'Sdn',
           component: () => import('@/views/SdnView.vue'),

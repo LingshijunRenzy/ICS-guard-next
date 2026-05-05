@@ -1,0 +1,43 @@
+/* ===== ECharts Container Styles ===== */
+
+.chart-wrapper {
+  width: 100%;
+  height: 280px;
+  min-height: 200px;
+}
+
+.chart-wrapper-sm {
+  width: 100%;
+  height: 220px;
+  min-height: 160px;
+}
+
+.chart-wrapper-lg {
+  width: 100%;
+  height: 340px;
+  min-height: 260px;
+}
+
+/* Chart column layout — rows of two */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Trailing axis label */
+.axis-label-mono {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* Tooltip style overrides (echarts default tooltip is fine, but we can add extras) */
+.chart-tooltip {
+  font-size: 13px;
+}

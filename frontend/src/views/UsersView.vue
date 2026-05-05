@@ -94,7 +94,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { UserIcon, AddIcon, ViewListIcon } from 'tdesign-icons-vue-next'
 import { get, post, put, del, patch } from '@/api/client'
 import { useI18n } from 'vue-i18n'
-import type { UserResponse, RoleResponse, CreateUserRequest } from '@/api/types'
+import type { UserResponse, RoleResponse, CreateUserRequest, PageDTO } from '@/api/types'
 import type { FormInstanceFunctions, FormRules } from 'tdesign-vue-next'
 import { formatDateTime } from '@/composables/useFormat'
 import SkeletonTable from '@/components/skeleton/SkeletonTable.vue'
@@ -132,8 +132,8 @@ const userColumns = computed(() => [
 async function fetchUsers() {
   loading.value = true
   try {
-    const res = await get<UserResponse[]>('/users')
-    if (res.code === 200) users.value = res.data
+    const res = await get<PageDTO<UserResponse>>('/users')
+    if (res.code === 200) users.value = res.data.content
   } finally { loading.value = false }
 }
 

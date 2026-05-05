@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { post, get } from '@/api/client'
 import type { LoginRequest, UserResponse } from '@/api/types'
 import { applyServerLanguage } from '@/locales'
+import { applyServerTheme } from '@/theme'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserResponse | null>(null)
@@ -19,6 +20,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (res.code === 200) {
         user.value = res.data
         applyServerLanguage(res.data.profile?.language)
+        applyServerTheme(res.data.profile?.theme)
       }
       return res
     } finally {
@@ -37,6 +39,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (res.code === 200) {
         user.value = res.data
         applyServerLanguage(res.data.profile?.language)
+        applyServerTheme(res.data.profile?.theme)
       }
     } catch {
       user.value = null

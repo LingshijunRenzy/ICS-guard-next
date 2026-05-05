@@ -191,6 +191,17 @@ export interface PermissionResponse {
   id: number
   name: string
   description: string | null
+  metadata?: Record<string, string>
+  typeId?: number
+  typeName?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface PermissionTypeResponse {
+  id: number
+  name: string
+  description: string | null
 }
 
 export interface CreateUserRequest {

@@ -14,6 +14,8 @@ export default {
     status: '状态',
     total: '共',
     noData: '暂无数据',
+    startDate: '开始日期',
+    endDate: '结束日期',
     create: '新建',
     confirmDelete: '确认删除？',
     loading: '加载中...',
@@ -31,6 +33,13 @@ export default {
     users: '用户管理',
     sdnControl: 'SDN 控制',
     logout: '退出登录',
+    groupMonitor: '监控管理',
+    groupNetwork: '网络管理',
+    groupManagement: '系统管理',
+    groupUsersRoles: '用户与角色',
+    userManage: '用户管理',
+    roleManage: '角色管理',
+    permissionManage: '权限管理',
   },
 
   login: {
@@ -65,6 +74,7 @@ export default {
     protocol: '协议',
     description: '描述',
     triggeredAt: '触发时间',
+    bytes: '字节数',
   },
 
   alerts: {
@@ -186,6 +196,22 @@ export default {
     noRoles: '暂无角色定义',
     rolesTitle: '角色',
     permissions: '权限',
+  },
+
+  roles: {
+    title: '角色管理',
+    newRole: '新建角色',
+    roleList: '角色列表',
+    noRoles: '暂无角色',
+    editRole: '编辑角色',
+    createRole: '新建角色',
+    name: '名称',
+    description: '描述',
+    descriptionHint: '描述（选填）',
+    permissions: '权限',
+    selectPerms: '请选择权限',
+    nameRequired: '请输入角色名称',
+    deleteConfirm: '确认删除此角色？',
   },
 
   sdn: {

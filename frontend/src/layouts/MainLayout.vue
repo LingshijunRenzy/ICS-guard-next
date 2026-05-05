@@ -7,56 +7,70 @@
       </div>
       <t-menu :value="route.path" theme="light"
         class="custom-menu"
-@change="handleMenuChange"
+v-model:expanded="expandedMenus"
+        @change="handleMenuChange"
       >
-        <t-menu-item value="/">
-          <template #icon>
-            <DashboardIcon />
-          </template>
-          {{ $t('layout.dashboard') }}
-        </t-menu-item>
-        <t-menu-item value="/alerts">
-          <template #icon>
-            <NotificationIcon />
-          </template>
-          {{ $t('layout.alerts') }}
-        </t-menu-item>
-        <t-menu-item value="/rules">
-          <template #icon>
-            <SettingIcon />
-          </template>
-          {{ $t('layout.rules') }}
-        </t-menu-item>
-        <t-menu-item value="/topology">
-          <template #icon>
-            <ShareIcon />
-          </template>
-          {{ $t('layout.topology') }}
-        </t-menu-item>
-        <t-menu-item value="/traffic">
-          <template #icon>
-            <LinkIcon />
-          </template>
-          {{ $t('layout.traffic') }}
-        </t-menu-item>
-        <t-menu-item value="/audit-logs">
-          <template #icon>
-            <FileIcon />
-          </template>
-          {{ $t('layout.auditLogs') }}
-        </t-menu-item>
-        <t-menu-item value="/users">
-          <template #icon>
-            <UserIcon />
-          </template>
-          {{ $t('layout.users') }}
-        </t-menu-item>
-        <t-menu-item value="/sdn">
-          <template #icon>
-            <DesktopIcon />
-          </template>
-          {{ $t('layout.sdnControl') }}
-        </t-menu-item>
+        <!-- 监控管理组 -->
+        <t-menu-group :title="$t('layout.groupMonitor')">
+          <t-menu-item value="/">
+            <template #icon>
+              <DashboardIcon />
+            </template>
+            {{ $t('layout.dashboard') }}
+          </t-menu-item>
+          <t-menu-item value="/alerts">
+            <template #icon>
+              <NotificationIcon />
+            </template>
+            {{ $t('layout.alerts') }}
+          </t-menu-item>
+          <t-menu-item value="/rules">
+            <template #icon>
+              <SettingIcon />
+            </template>
+            {{ $t('layout.rules') }}
+          </t-menu-item>
+        </t-menu-group>
+
+        <!-- 网络管理组 -->
+        <t-menu-group :title="$t('layout.groupNetwork')">
+          <t-menu-item value="/topology">
+            <template #icon>
+              <ShareIcon />
+            </template>
+            {{ $t('layout.topology') }}
+          </t-menu-item>
+          <t-menu-item value="/traffic">
+            <template #icon>
+              <LinkIcon />
+            </template>
+            {{ $t('layout.traffic') }}
+          </t-menu-item>
+          <t-menu-item value="/sdn">
+            <template #icon>
+              <DesktopIcon />
+            </template>
+            {{ $t('layout.sdnControl') }}
+          </t-menu-item>
+        </t-menu-group>
+
+        <!-- 系统管理组 -->
+        <t-menu-group :title="$t('layout.groupManagement')">
+          <t-menu-item value="/audit-logs">
+            <template #icon>
+              <FileIcon />
+            </template>
+            {{ $t('layout.auditLogs') }}
+          </t-menu-item>
+          <t-submenu :value="'users-root'" :title="$t('layout.groupUsersRoles')">
+            <template #icon>
+              <UserIcon />
+            </template>
+            <t-menu-item value="/users">{{ $t('layout.userManage') }}</t-menu-item>
+            <t-menu-item value="/roles">{{ $t('layout.roleManage') }}</t-menu-item>
+            <t-menu-item value="/permissions">{{ $t('layout.permissionManage') }}</t-menu-item>
+          </t-submenu>
+        </t-menu-group>
       </t-menu>
     </t-aside>
 
@@ -66,6 +80,12 @@
           <span class="campus-title">{{ $t('common.campusTitle') }}</span>
         </div>
         <div class="header-right">
+          <t-button variant="text" shape="square" @click="handleToggleTheme">
+            <template #icon>
+              <ModeDarkIcon v-if="currentTheme === 'light'" />
+              <ModeLightIcon v-else />
+            </template>
+          </t-button>
           <t-button variant="text" class="lang-btn" @click="toggleLang">{{ $t('langSwitch') }}</t-button>
           <t-divider layout="vertical" />
           <t-avatar size="32px" class="user-avatar">{{ auth.username?.charAt(0).toUpperCase() }}</t-avatar>
@@ -86,10 +106,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { toggleLocale, currentLocale } from '@/locales'
+import { toggleTheme, currentTheme } from '@/theme'
 import { patch } from '@/api/client'
 import {
   DashboardIcon,
@@ -97,21 +118,43 @@ import {
   SettingIcon,
   ShareIcon,
   LinkIcon,
+  DesktopIcon,
   FileIcon,
   UserIcon,
-  DesktopIcon,
+  ModeDarkIcon,
+  ModeLightIcon
 } from 'tdesign-icons-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
-const activeMenu = computed(() => route.path)
+// Auto-expand submenu when route matches /users or /roles
+const expandedMenus = ref<string[]>([])
+
+watch(
+  () => route.path,
+  (path) => {
+    if (path.startsWith('/users') || path.startsWith('/roles')) {
+      if (!expandedMenus.value.includes('users-root')) {
+        expandedMenus.value = [...expandedMenus.value, 'users-root']
+      }
+    }
+  },
+  { immediate: true },
+)
 
 function toggleLang() {
   toggleLocale()
   if (auth.isAuthenticated) {
     patch('/auth/profile', { language: currentLocale() }).catch(() => {})
+  }
+}
+
+function handleToggleTheme() {
+  toggleTheme()
+  if (auth.isAuthenticated) {
+    patch('/auth/profile', { theme: currentTheme.value }).catch(() => { })
   }
 }
 
@@ -129,7 +172,7 @@ async function handleLogout() {
 .app-container {
   height: 100vh;
   overflow: hidden;
-    display: flex;
+  display: flex;
 }
 
 .sidebar {
@@ -140,7 +183,7 @@ async function handleLogout() {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-    height: 100vh;
+  height: 100vh;
   }
   
   .right-layout {
@@ -157,7 +200,7 @@ async function handleLogout() {
   align-items: center;
   padding: 0 var(--space-xl);
   color: var(--td-text-color-primary);
-    border-bottom: 1px solid var(--td-component-border);
+  border-bottom: 1px solid var(--td-component-border);
     flex-shrink: 0;
 }
 
@@ -173,13 +216,11 @@ async function handleLogout() {
 
 @keyframes pulse {
   0% {
-      box-shadow: 0 0 0 0 rgba(0, 82, 217, 0.7);
+    box-shadow: 0 0 0 0 rgba(0, 82, 217, 0.7);
     }
-  
     70% {
       box-shadow: 0 0 0 6px rgba(0, 82, 217, 0);
     }
-  
     100% {
       box-shadow: 0 0 0 0 rgba(0, 82, 217, 0);
     }
@@ -189,12 +230,14 @@ async function handleLogout() {
   font-size: 20px;
   font-weight: 600;
   letter-spacing: 1px;
-    color: var(--td-text-color-primary);
+  color: var(--td-text-color-primary);
 }
+
 .custom-menu {
   border-right: none;
   flex: 1;
   background: transparent !important;
+  padding-bottom: var(--space-md);
 }
 
 .custom-menu :deep(.t-menu__item) {
@@ -202,6 +245,27 @@ async function handleLogout() {
   border-radius: var(--td-radius-default);
 }
 
+.custom-menu :deep(.t-menu-group) {
+  margin-top: var(--space-md);
+}
+
+.custom-menu :deep(.t-menu-group__title) {
+  padding: 0 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--td-text-color-placeholder, #999);
+  margin-bottom: 4px;
+}
+
+.custom-menu :deep(.t-submenu) {
+  margin: 0 8px;
+}
+
+.custom-menu :deep(.t-submenu .t-menu__item) {
+  margin: 2px 0;
+}
 
 .header {
   display: flex;
@@ -222,6 +286,7 @@ async function handleLogout() {
   padding: var(--space-xl);
   background-color: var(--bg-page);
 }
+
 .header-left .campus-title {
   font-size: 16px;
   font-weight: 600;

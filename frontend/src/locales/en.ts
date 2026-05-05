@@ -14,6 +14,8 @@ export default {
     status: 'Status',
     total: 'Total',
     noData: 'No data',
+    startDate: 'Start date',
+    endDate: 'End date',
     create: 'Create',
     confirmDelete: 'Delete this item?',
     loading: 'Loading...',
@@ -31,6 +33,13 @@ export default {
     users: 'Users',
     sdnControl: 'SDN Control',
     logout: 'Logout',
+    groupMonitor: 'Monitoring',
+    groupNetwork: 'Network',
+    groupManagement: 'Management',
+    groupUsersRoles: 'Users & Roles',
+    userManage: 'User Management',
+    roleManage: 'Role Management',
+    permissionManage: 'Permission Management',
   },
 
   login: {
@@ -65,6 +74,7 @@ export default {
     protocol: 'Proto',
     description: 'Description',
     triggeredAt: 'Triggered At',
+    bytes: 'Bytes',
   },
 
   alerts: {
@@ -205,6 +215,22 @@ export default {
     rulesDesc: 'Push configured detection rules to the SDN controller for enforcement in the data plane.',
     lastOperation: 'Last Operation',
     operation: 'Operation',
+  },
+
+  roles: {
+    title: 'Role Management',
+    newRole: 'New Role',
+    roleList: 'Role List',
+    noRoles: 'No roles found',
+    editRole: 'Edit Role',
+    createRole: 'Create Role',
+    name: 'Name',
+    description: 'Description',
+    descriptionHint: 'Description (optional)',
+    permissions: 'Permissions',
+    selectPerms: 'Select permissions',
+    nameRequired: 'Name is required',
+    deleteConfirm: 'Delete this role?',
   },
 
   severity: {
