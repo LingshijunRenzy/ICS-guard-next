@@ -1,5 +1,5 @@
 <template>
-  <el-card shadow="hover" class="skeleton-list-card">
+  <t-card bordered class="skeleton-list-card">
     <template #header>
       <div class="skeleton-card-header">
         <div class="skeleton-line skeleton-line-md skeleton-shimmer" />
@@ -12,19 +12,16 @@
         <div class="skeleton-line skeleton-line-value skeleton-shimmer" />
       </div>
     </div>
-  </el-card>
+  </t-card>
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{ items?: number }>(), {
-  items: 4,
-})
+withDefaults(defineProps<{ items?: number }>(), { items: 4 })
 </script>
 
 <style scoped>
 .skeleton-list-card {
   border-radius: var(--radius-2xl);
-  border: none;
 }
 
 .skeleton-card-header {
@@ -51,14 +48,8 @@ withDefaults(defineProps<{ items?: number }>(), {
   height: 14px;
 }
 
-.skeleton-line-md {
-  width: 40%;
-}
-
-.skeleton-line-label {
-  width: 80px;
-  flex-shrink: 0;
-}
+.skeleton-line-md { width: 40%; }
+.skeleton-line-label { width: 80px; flex-shrink: 0; }
 
 .skeleton-bar {
   flex: 1;
@@ -67,10 +58,7 @@ withDefaults(defineProps<{ items?: number }>(), {
   background: #e8e8e8;
 }
 
-.skeleton-line-value {
-  width: 40px;
-  flex-shrink: 0;
-}
+.skeleton-line-value { width: 40px; flex-shrink: 0; }
 
 .skeleton-shimmer {
   background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%);
@@ -79,11 +67,7 @@ withDefaults(defineProps<{ items?: number }>(), {
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 </style>

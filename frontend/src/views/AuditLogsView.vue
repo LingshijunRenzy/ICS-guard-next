@@ -2,95 +2,85 @@
   <div class="audit-page">
     <div class="page-header">
       <div class="header-title">
-        <el-icon class="header-icon header-icon-info"><Document /></el-icon>
+        <span class="header-icon header-icon-info"><FileIcon size="22px" /></span>
         <h2>{{ $t('audit.title') }}</h2>
       </div>
-      <el-button type="primary" :icon="Refresh" :loading="loading" @click="fetchList(pageNum)">
+      <t-button theme="primary" :loading="loading" @click="fetchList(pageNum)">
+        <template #icon><RefreshIcon /></template>
         {{ $t('common.refresh') }}
-      </el-button>
+      </t-button>
     </div>
 
-    <el-card shadow="hover" class="filter-card">
-      <el-form :inline="true" :model="filters" size="default">
-        <el-form-item :label="$t('audit.action')">
-          <el-input v-model="filters.action" placeholder="e.g. login" clearable style="width:160px" />
-        </el-form-item>
-        <el-form-item :label="$t('audit.username')">
-          <el-input v-model="filters.username" :placeholder="$t('audit.usernamePlaceholder')" clearable style="width:160px" />
-        </el-form-item>
-        <el-form-item :label="$t('audit.resource')">
-          <el-input v-model="filters.resource" placeholder="e.g. alert" clearable style="width:160px" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="fetchList(1)">{{ $t('common.search') }}</el-button>
-          <el-button @click="resetFilters">{{ $t('common.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+    <t-card :bordered="false" class="filter-card">
+      <t-form :data="filters" layout="inline">
+        <t-form-item :label="$t('audit.action')">
+          <t-input v-model="filters.action" placeholder="e.g. login" clearable style="width:160px" />
+        </t-form-item>
+        <t-form-item :label="$t('audit.username')">
+          <t-input v-model="filters.username" :placeholder="$t('audit.usernamePlaceholder')" clearable style="width:160px" />
+        </t-form-item>
+        <t-form-item :label="$t('audit.resource')">
+          <t-input v-model="filters.resource" placeholder="e.g. alert" clearable style="width:160px" />
+        </t-form-item>
+        <t-form-item>
+          <t-button theme="primary" @click="fetchList(1)">{{ $t('common.search') }}</t-button>
+          <t-button variant="outline" @click="resetFilters">{{ $t('common.reset') }}</t-button>
+        </t-form-item>
+      </t-form>
+    </t-card>
 
     <SkeletonTable v-if="loading && !logs.length" :rows="5" :cols="7" />
-    <el-card v-else shadow="hover" class="table-card">
+    <t-card v-else :bordered="false" class="table-card">
       <template #header>
         <div class="card-header">
-          <span><el-icon class="card-header-icon-info"><List /></el-icon> {{ $t('audit.auditRecords') }}</span>
+          <span><ViewListIcon size="18px" class="card-header-icon-info" /> {{ $t('audit.auditRecords') }}</span>
           <span class="header-count">{{ $t('common.total') }}: {{ page.totalElements }}</span>
         </div>
       </template>
       <template v-if="logs.length">
-        <el-table v-loading="loading" :data="logs" stripe size="default" class="tech-table">
-          <el-table-column :label="$t('audit.action')" width="160">
-            <template #default="{ row }">
-              <el-tag :type="auditActionTag(row.action)" size="small" effect="dark">{{ row.action.toUpperCase() }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('audit.user')" width="130">
-            <template #default="{ row }"><span class="tech-font">{{ row.username ?? $t('common.dash') }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('audit.resource')" width="130">
-            <template #default="{ row }"><span class="tech-font mono">{{ row.resource ?? $t('common.dash') }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('audit.resourceId')" width="130">
-            <template #default="{ row }"><span class="tech-font mono">{{ row.resourceId ?? $t('common.dash') }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('audit.ipAddress')" width="160">
-            <template #default="{ row }">
-              <span v-if="row.ipAddress" class="tech-font mono">{{ row.ipAddress }}</span>
-              <span v-else class="tech-font">{{ $t('common.dash') }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('audit.traceId')" width="280" show-overflow-tooltip>
-            <template #default="{ row }"><span class="tech-font mono trace-id">{{ row.traceId }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('audit.timestamp')" width="180">
-            <template #default="{ row }"><span class="tech-font">{{ formatDateTime(row.createdAt) }}</span></template>
-          </el-table-column>
-        </el-table>
+        <t-table :loading="loading" :data="logs" :columns="columns" stripe size="medium" class="tech-table" row-key="id">
+          <template #action="{ row }">
+            <t-tag :theme="auditActionTag(row.action)" size="small" variant="dark">{{ row.action.toUpperCase() }}</t-tag>
+          </template>
+          <template #username="{ row }"><span class="tech-font">{{ row.username ?? $t('common.dash') }}</span></template>
+          <template #resource="{ row }"><span class="tech-font mono">{{ row.resource ?? $t('common.dash') }}</span></template>
+          <template #resourceId="{ row }"><span class="tech-font mono">{{ row.resourceId ?? $t('common.dash') }}</span></template>
+          <template #ipAddress="{ row }">
+            <span v-if="row.ipAddress" class="tech-font mono">{{ row.ipAddress }}</span>
+            <span v-else class="tech-font">{{ $t('common.dash') }}</span>
+          </template>
+          <template #traceId="{ row }"><span class="tech-font mono trace-id">{{ row.traceId }}</span></template>
+          <template #createdAt="{ row }"><span class="tech-font">{{ formatDateTime(row.createdAt) }}</span></template>
+        </t-table>
         <div class="pagination-wrap">
-          <el-pagination
-            v-model:current-page="pageNum"
+          <t-pagination
+            v-model:current="pageNum"
             v-model:page-size="pageSize"
             :total="page.totalElements"
-            :page-sizes="[10, 20, 50]"
-            layout="total, sizes, prev, pager, next"
-            @size-change="fetchList(1)"
+            :page-size-options="[10, 20, 50]"
+            show-page-number
+            show-page-size
+            @page-size-change="fetchList(1)"
             @current-change="fetchList"
           />
         </div>
       </template>
-      <el-empty v-else :description="$t('audit.noLogs')" :image-size="100" />
-    </el-card>
+      <t-empty v-else :description="$t('audit.noLogs')" />
+    </t-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { Document, Refresh, List } from '@element-plus/icons-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { FileIcon, RefreshIcon, ViewListIcon } from 'tdesign-icons-vue-next'
 import { get } from '@/api/client'
 import type { AuditLogResponse, PageDTO } from '@/api/types'
+import { useI18n } from 'vue-i18n'
 import { formatDateTime } from '@/composables/useFormat'
 import { auditActionTag } from '@/composables/useSeverity'
 import SkeletonTable from '@/components/skeleton/SkeletonTable.vue'
 
+const { t } = useI18n()
 const loading = ref(false)
 const logs = ref<AuditLogResponse[]>([])
 const pageNum = ref(1)
@@ -98,6 +88,16 @@ const pageSize = ref(10)
 const page = reactive<PageDTO<AuditLogResponse>>({ content: [], page: 1, size: 10, totalElements: 0, totalPages: 0 })
 
 const filters = reactive({ action: '', username: '', resource: '' })
+
+const columns = computed(() => [
+  { colKey: 'action', title: t('audit.action'), width: 160 },
+  { colKey: 'username', title: t('audit.user'), width: 130 },
+  { colKey: 'resource', title: t('audit.resource'), width: 130 },
+  { colKey: 'resourceId', title: t('audit.resourceId'), width: 130 },
+  { colKey: 'ipAddress', title: t('audit.ipAddress'), width: 160 },
+  { colKey: 'traceId', title: t('audit.traceId'), width: 280, ellipsis: true },
+  { colKey: 'createdAt', title: t('audit.timestamp'), width: 180 },
+])
 
 async function fetchList(p: number) {
   loading.value = true
@@ -125,5 +125,5 @@ onMounted(() => fetchList(1))
 
 .header-icon-info { color: var(--color-info); background: var(--color-info-light); }
 
-.card-header-icon-info { color: var(--color-info); font-size: 18px; }
+.card-header-icon-info { color: var(--color-info); }
 </style>

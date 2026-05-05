@@ -1,5 +1,5 @@
 <template>
-  <el-card shadow="hover" class="skeleton-card">
+  <t-card bordered class="skeleton-card">
     <div class="skeleton-content">
       <div class="skeleton-icon skeleton-shimmer" />
       <div class="skeleton-lines">
@@ -7,13 +7,12 @@
         <div class="skeleton-line skeleton-line-lg skeleton-shimmer" />
       </div>
     </div>
-  </el-card>
+  </t-card>
 </template>
 
 <style scoped>
 .skeleton-card {
   border-radius: var(--radius-2xl);
-  border: none;
 }
 
 .skeleton-content {
@@ -59,11 +58,7 @@
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 </style>

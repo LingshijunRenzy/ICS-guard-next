@@ -1,94 +1,122 @@
 <template>
-  <el-container class="app-container">
-    <el-aside width="240px" class="sidebar">
+  <t-layout class="app-container">
+    <t-aside class="sidebar" width="232px">
       <div class="logo">
         <span class="logo-icon" />
         <span class="logo-text">{{ $t('common.appName') }}</span>
       </div>
-      <el-menu
-        :default-active="route.path"
-        router
+      <t-menu :value="route.path" theme="light"
         class="custom-menu"
-        background-color="transparent"
-        text-color="#adb5bd"
-        active-text-color="#ffffff"
+@change="handleMenuChange"
       >
-        <el-menu-item index="/">
-          <el-icon><Odometer /></el-icon>
-          <span>{{ $t('layout.dashboard') }}</span>
-        </el-menu-item>
-        <el-menu-item index="/alerts">
-          <el-icon><Bell /></el-icon>
-          <span>{{ $t('layout.alerts') }}</span>
-        </el-menu-item>
-        <el-menu-item index="/rules">
-          <el-icon><Setting /></el-icon>
-          <span>{{ $t('layout.rules') }}</span>
-        </el-menu-item>
-        <el-menu-item index="/topology">
-          <el-icon><Share /></el-icon>
-          <span>{{ $t('layout.topology') }}</span>
-        </el-menu-item>
-        <el-menu-item index="/traffic">
-          <el-icon><Connection /></el-icon>
-          <span>{{ $t('layout.traffic') }}</span>
-        </el-menu-item>
-        <el-menu-item index="/audit-logs">
-          <el-icon><Document /></el-icon>
-          <span>{{ $t('layout.auditLogs') }}</span>
-        </el-menu-item>
-        <el-menu-item index="/users">
-          <el-icon><User /></el-icon>
-          <span>{{ $t('layout.users') }}</span>
-        </el-menu-item>
-        <el-menu-item index="/sdn">
-          <el-icon><Monitor /></el-icon>
-          <span>{{ $t('layout.sdnControl') }}</span>
-        </el-menu-item>
-      </el-menu>
-    </el-aside>
+        <t-menu-item value="/">
+          <template #icon>
+            <DashboardIcon />
+          </template>
+          {{ $t('layout.dashboard') }}
+        </t-menu-item>
+        <t-menu-item value="/alerts">
+          <template #icon>
+            <NotificationIcon />
+          </template>
+          {{ $t('layout.alerts') }}
+        </t-menu-item>
+        <t-menu-item value="/rules">
+          <template #icon>
+            <SettingIcon />
+          </template>
+          {{ $t('layout.rules') }}
+        </t-menu-item>
+        <t-menu-item value="/topology">
+          <template #icon>
+            <ShareIcon />
+          </template>
+          {{ $t('layout.topology') }}
+        </t-menu-item>
+        <t-menu-item value="/traffic">
+          <template #icon>
+            <LinkIcon />
+          </template>
+          {{ $t('layout.traffic') }}
+        </t-menu-item>
+        <t-menu-item value="/audit-logs">
+          <template #icon>
+            <FileIcon />
+          </template>
+          {{ $t('layout.auditLogs') }}
+        </t-menu-item>
+        <t-menu-item value="/users">
+          <template #icon>
+            <UserIcon />
+          </template>
+          {{ $t('layout.users') }}
+        </t-menu-item>
+        <t-menu-item value="/sdn">
+          <template #icon>
+            <DesktopIcon />
+          </template>
+          {{ $t('layout.sdnControl') }}
+        </t-menu-item>
+      </t-menu>
+    </t-aside>
 
-    <el-container>
-      <el-header class="header">
+    <t-layout class="right-layout">
+      <t-header class="header">
         <div class="header-left">
           <span class="campus-title">{{ $t('common.campusTitle') }}</span>
         </div>
         <div class="header-right">
-          <el-button link class="lang-btn" @click="toggleLang">{{ $t('langSwitch') }}</el-button>
-          <el-divider direction="vertical" />
-          <el-avatar :size="32" class="user-avatar">{{ auth.username?.charAt(0).toUpperCase() }}</el-avatar>
+          <t-button variant="text" class="lang-btn" @click="toggleLang">{{ $t('langSwitch') }}</t-button>
+          <t-divider layout="vertical" />
+          <t-avatar size="32px" class="user-avatar">{{ auth.username?.charAt(0).toUpperCase() }}</t-avatar>
           <span class="greeting">{{ auth.username }}</span>
-          <el-divider direction="vertical" />
-          <el-button link type="primary" @click="handleLogout">{{ $t('layout.logout') }}</el-button>
+          <t-divider layout="vertical" />
+          <t-button variant="text" theme="primary" @click="handleLogout">{{ $t('layout.logout') }}</t-button>
         </div>
-      </el-header>
-      <el-main class="content">
+      </t-header>
+      <t-content class="content">
         <router-view v-slot="{ Component }">
           <transition name="fade-transform" mode="out-in">
             <component :is="Component" />
           </transition>
         </router-view>
-      </el-main>
-    </el-container>
-  </el-container>
+      </t-content>
+    </t-layout>
+  </t-layout>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { toggleLocale, currentLocale } from '@/locales'
 import { patch } from '@/api/client'
-import { Odometer, Bell, Setting, Share, Connection, Document, User, Monitor } from '@element-plus/icons-vue'
+import {
+  DashboardIcon,
+  NotificationIcon,
+  SettingIcon,
+  ShareIcon,
+  LinkIcon,
+  FileIcon,
+  UserIcon,
+  DesktopIcon,
+} from 'tdesign-icons-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+
+const activeMenu = computed(() => route.path)
 
 function toggleLang() {
   toggleLocale()
   if (auth.isAuthenticated) {
     patch('/auth/profile', { language: currentLocale() }).catch(() => {})
   }
+}
+
+function handleMenuChange(value: string) {
+  router.push(value)
 }
 
 async function handleLogout() {
@@ -100,15 +128,27 @@ async function handleLogout() {
 <style scoped>
 .app-container {
   height: 100vh;
+  overflow: hidden;
+    display: flex;
 }
 
 .sidebar {
-  background: linear-gradient(180deg, var(--bg-sidebar-from) 0%, var(--bg-sidebar-to) 100%);
+  background: var(--td-bg-color-secondarycontainer, #242424);
   box-shadow: var(--shadow-sidebar);
   overflow-y: auto;
   z-index: 10;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+    height: 100vh;
+  }
+  
+  .right-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .logo {
@@ -116,8 +156,9 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   padding: 0 var(--space-xl);
-  color: #fff;
-  border-bottom: 1px solid var(--border-ghost);
+  color: var(--td-text-color-primary);
+    border-bottom: 1px solid var(--td-component-border);
+    flex-shrink: 0;
 }
 
 .logo-icon {
@@ -131,42 +172,36 @@ async function handleLogout() {
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(64, 158, 255, 0.7); }
-  70% { box-shadow: 0 0 0 6px rgba(64, 158, 255, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(64, 158, 255, 0); }
+  0% {
+      box-shadow: 0 0 0 0 rgba(0, 82, 217, 0.7);
+    }
+  
+    70% {
+      box-shadow: 0 0 0 6px rgba(0, 82, 217, 0);
+    }
+  
+    100% {
+      box-shadow: 0 0 0 0 rgba(0, 82, 217, 0);
+    }
 }
 
 .logo-text {
   font-size: 20px;
   font-weight: 600;
-  letter-spacing: 1.5px;
-  background: linear-gradient(90deg, #fff, var(--color-primary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: 1px;
+    color: var(--td-text-color-primary);
 }
-
 .custom-menu {
   border-right: none;
   flex: 1;
-  margin-top: var(--space-lg);
+  background: transparent !important;
 }
 
-.custom-menu .el-menu-item {
-  height: 50px;
-  line-height: 50px;
-  margin: var(--space-xs) var(--space-md);
-  border-radius: var(--radius-md);
+.custom-menu :deep(.t-menu__item) {
+  margin: 4px 8px;
+  border-radius: var(--td-radius-default);
 }
 
-.custom-menu .el-menu-item.is-active {
-  background: rgba(64, 158, 255, 0.15) !important;
-  color: var(--color-primary) !important;
-  font-weight: 500;
-}
-
-.custom-menu .el-menu-item:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
-}
 
 .header {
   display: flex;
@@ -176,9 +211,17 @@ async function handleLogout() {
   box-shadow: var(--shadow-card);
   padding: 0 var(--space-xl);
   height: 64px;
+  flex-shrink: 0;
   z-index: 5;
 }
 
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-xl);
+  background-color: var(--bg-page);
+}
 .header-left .campus-title {
   font-size: 16px;
   font-weight: 600;

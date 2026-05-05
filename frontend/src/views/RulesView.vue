@@ -2,153 +2,135 @@
   <div class="rules-page">
     <div class="page-header">
       <div class="header-title">
-        <el-icon class="header-icon header-icon-primary"><Setting /></el-icon>
+        <span class="header-icon header-icon-primary"><SettingIcon size="22px" /></span>
         <h2>{{ $t('rules.title') }}</h2>
       </div>
-      <el-button type="primary" :icon="Plus" @click="openCreate">{{ $t('rules.newRule') }}</el-button>
+      <t-button theme="primary" @click="openCreate">
+        <template #icon><AddIcon /></template>
+        {{ $t('rules.newRule') }}
+      </t-button>
     </div>
 
-    <el-card shadow="hover" class="filter-card">
-      <el-form :inline="true" :model="filters" size="default">
-        <el-form-item :label="$t('rules.ruleType')">
-          <el-select v-model="filters.ruleType" :placeholder="$t('common.dash')" clearable style="width:150px">
-            <el-option :label="$t('ruleType.anomaly')" value="anomaly" />
-            <el-option :label="$t('ruleType.signature')" value="signature" />
-            <el-option :label="$t('ruleType.threshold')" value="threshold" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="$t('rules.enabled')">
-          <el-select v-model="filters.enabled" clearable style="width:110px">
-            <el-option :label="$t('yes')" :value="true" />
-            <el-option :label="$t('no')" :value="false" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="$t('common.search')">
-          <el-input v-model="filters.search" :placeholder="$t('rules.searchName')" clearable style="width:180px" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="fetchList(1)">{{ $t('common.search') }}</el-button>
-          <el-button @click="resetFilters">{{ $t('common.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+    <t-card :bordered="false" class="filter-card">
+      <t-form :data="filters" layout="inline">
+        <t-form-item :label="$t('rules.ruleType')">
+          <t-select v-model="filters.ruleType" :placeholder="$t('common.dash')" clearable style="width:150px">
+            <t-option :label="$t('ruleType.anomaly')" value="anomaly" />
+            <t-option :label="$t('ruleType.signature')" value="signature" />
+            <t-option :label="$t('ruleType.threshold')" value="threshold" />
+          </t-select>
+        </t-form-item>
+        <t-form-item :label="$t('rules.enabled')">
+          <t-select v-model="filters.enabled" clearable style="width:110px">
+            <t-option :label="$t('yes')" :value="true" />
+            <t-option :label="$t('no')" :value="false" />
+          </t-select>
+        </t-form-item>
+        <t-form-item :label="$t('common.search')">
+          <t-input v-model="filters.search" :placeholder="$t('rules.searchName')" clearable style="width:180px" />
+        </t-form-item>
+        <t-form-item>
+          <t-button theme="primary" @click="fetchList(1)">{{ $t('common.search') }}</t-button>
+          <t-button variant="outline" @click="resetFilters">{{ $t('common.reset') }}</t-button>
+        </t-form-item>
+      </t-form>
+    </t-card>
 
     <SkeletonTable v-if="loading && !rules.length" :rows="5" :cols="6" />
-    <el-card v-else shadow="hover" class="table-card">
+    <t-card v-else :bordered="false" class="table-card">
       <template #header>
         <div class="card-header">
-          <span><el-icon class="card-header-icon-primary"><Setting /></el-icon> {{ $t('rules.ruleList') }}</span>
+          <span><SettingIcon size="18px" class="card-header-icon-primary" /> {{ $t('rules.ruleList') }}</span>
           <span class="header-count">{{ $t('common.total') }}: {{ page.totalElements }}</span>
         </div>
       </template>
       <template v-if="rules.length">
-        <el-table v-loading="loading" :data="rules" stripe size="default" class="tech-table">
-          <el-table-column :label="$t('rules.name')" min-width="160">
-            <template #default="{ row }"><span class="rule-name">{{ row.name }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('rules.type')" width="120">
-            <template #default="{ row }"><span class="tech-font mono">{{ $t(`ruleType.${row.ruleType}`, row.ruleType) }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('rules.target')" width="160">
-            <template #default="{ row }"><span class="tech-font mono">{{ row.target ?? $t('common.dash') }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('rules.action')" width="110">
-            <template #default="{ row }">
-              <el-tag :type="actionTag(row.action)" size="small" effect="dark">{{ $t(`ruleAction.${row.action}`, row.action.toUpperCase()) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('rules.priority')" width="90" align="center" />
-          <el-table-column :label="$t('common.status')" width="100">
-            <template #default="{ row }">
-              <el-switch
-                :model-value="row.enabled"
-                active-color="var(--color-success)"
-                inactive-color="var(--color-danger)"
-                @change="(val: boolean) => toggleEnabled(row, val)"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('rules.created')" width="170">
-            <template #default="{ row }"><span class="tech-font">{{ formatDateTime(row.createdAt) }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('common.actions')" width="180" fixed="right">
-            <template #default="{ row }">
-              <el-button size="small" link type="primary" @click="openEdit(row)">{{ $t('common.edit') }}</el-button>
-              <el-popconfirm :title="$t('rules.deleteConfirm')" @confirm="handleDelete(row.id)">
-                <template #reference>
-                  <el-button size="small" link type="danger">{{ $t('common.delete') }}</el-button>
-                </template>
-              </el-popconfirm>
-            </template>
-          </el-table-column>
-        </el-table>
+        <t-table :loading="loading" :data="rules" :columns="ruleColumns" stripe size="medium" class="tech-table" row-key="id">
+          <template #name="{ row }"><span class="rule-name">{{ row.name }}</span></template>
+          <template #ruleType="{ row }"><span class="tech-font mono">{{ $t(`ruleType.${row.ruleType}`, row.ruleType) }}</span></template>
+          <template #target="{ row }"><span class="tech-font mono">{{ row.target ?? $t('common.dash') }}</span></template>
+          <template #action="{ row }">
+            <t-tag :theme="actionTag(row.action)" size="small" variant="dark">{{ $t(`ruleAction.${row.action}`, row.action.toUpperCase()) }}</t-tag>
+          </template>
+          <template #enabled="{ row }">
+            <t-switch :value="row.enabled" @change="(val: boolean) => toggleEnabled(row, val)" />
+          </template>
+          <template #createdAt="{ row }"><span class="tech-font">{{ formatDateTime(row.createdAt) }}</span></template>
+          <template #actions="{ row }">
+            <t-button variant="text" theme="primary" size="small" @click="openEdit(row)">{{ $t('common.edit') }}</t-button>
+            <t-popconfirm :content="$t('rules.deleteConfirm')" @confirm="handleDelete(row.id)">
+              <t-button variant="text" theme="danger" size="small">{{ $t('common.delete') }}</t-button>
+            </t-popconfirm>
+          </template>
+        </t-table>
         <div class="pagination-wrap">
-          <el-pagination
-            v-model:current-page="pageNum"
+          <t-pagination
+            v-model:current="pageNum"
             v-model:page-size="pageSize"
             :total="page.totalElements"
-            :page-sizes="[10, 20, 50]"
-            layout="total, sizes, prev, pager, next"
-            @size-change="fetchList(1)"
+            :page-size-options="[10, 20, 50]"
+            show-page-number
+            show-page-size
+            @page-size-change="fetchList(1)"
             @current-change="fetchList"
           />
         </div>
       </template>
-      <el-empty v-else :description="$t('rules.noRules')" :image-size="100" />
-    </el-card>
+      <t-empty v-else :description="$t('rules.noRules')" />
+    </t-card>
 
-    <el-dialog
-      v-model="dialogVisible"
-      :title="editingId ? $t('rules.editRule') : $t('rules.createRule')"
+    <t-dialog
+      v-model:visible="dialogVisible"
+      :header="editingId ? $t('rules.editRule') : $t('rules.createRule')"
       width="600px"
       destroy-on-close
     >
-      <el-form ref="formRef" :model="form" :rules="formRules" label-width="110px">
-        <el-form-item :label="$t('rules.name')" prop="name">
-          <el-input v-model="form.name" :placeholder="$t('rules.name')" />
-        </el-form-item>
-        <el-form-item :label="$t('rules.description')">
-          <el-input v-model="form.description" type="textarea" :rows="2" :placeholder="$t('rules.descriptionPlaceholder')" />
-        </el-form-item>
-        <el-form-item :label="$t('rules.ruleType')" prop="ruleType">
-          <el-select v-model="form.ruleType" style="width:100%">
-            <el-option :label="$t('ruleType.anomaly')" value="anomaly" />
-            <el-option :label="$t('ruleType.signature')" value="signature" />
-            <el-option :label="$t('ruleType.threshold')" value="threshold" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="$t('rules.target')">
-          <el-input v-model="form.target" :placeholder="$t('rules.targetPlaceholder')" />
-        </el-form-item>
-        <el-form-item :label="$t('rules.action')" prop="action">
-          <el-select v-model="form.action" style="width:100%">
-            <el-option :label="$t('ruleAction.block')" value="block" />
-            <el-option :label="$t('ruleAction.alert')" value="alert" />
-            <el-option :label="$t('ruleAction.log')" value="log" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="$t('rules.priority')">
-          <el-input-number v-model="form.priority" :min="0" :max="100" />
-        </el-form-item>
-        <el-form-item :label="$t('rules.ruleConfig')">
-          <el-input v-model="form.ruleConfig" type="textarea" :rows="3" :placeholder="$t('rules.ruleConfigPlaceholder')" />
-        </el-form-item>
-      </el-form>
+      <t-form ref="formRef" :data="form" :rules="formRules" label-width="110px">
+        <t-form-item :label="$t('rules.name')" name="name">
+          <t-input v-model="form.name" :placeholder="$t('rules.name')" />
+        </t-form-item>
+        <t-form-item :label="$t('rules.description')">
+          <t-textarea v-model="form.description" :rows="2" :placeholder="$t('rules.descriptionPlaceholder')" />
+        </t-form-item>
+        <t-form-item :label="$t('rules.ruleType')" name="ruleType">
+          <t-select v-model="form.ruleType" style="width:100%">
+            <t-option :label="$t('ruleType.anomaly')" value="anomaly" />
+            <t-option :label="$t('ruleType.signature')" value="signature" />
+            <t-option :label="$t('ruleType.threshold')" value="threshold" />
+          </t-select>
+        </t-form-item>
+        <t-form-item :label="$t('rules.target')">
+          <t-input v-model="form.target" :placeholder="$t('rules.targetPlaceholder')" />
+        </t-form-item>
+        <t-form-item :label="$t('rules.action')" name="action">
+          <t-select v-model="form.action" style="width:100%">
+            <t-option :label="$t('ruleAction.block')" value="block" />
+            <t-option :label="$t('ruleAction.alert')" value="alert" />
+            <t-option :label="$t('ruleAction.log')" value="log" />
+          </t-select>
+        </t-form-item>
+        <t-form-item :label="$t('rules.priority')">
+          <t-input-number v-model="form.priority" :min="0" :max="100" />
+        </t-form-item>
+        <t-form-item :label="$t('rules.ruleConfig')">
+          <t-textarea v-model="form.ruleConfig" :rows="3" :placeholder="$t('rules.ruleConfigPlaceholder')" />
+        </t-form-item>
+      </t-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">{{ $t('common.save') }}</el-button>
+        <t-button @click="dialogVisible = false">{{ $t('common.cancel') }}</t-button>
+        <t-button theme="primary" :loading="saving" @click="handleSave">{{ $t('common.save') }}</t-button>
       </template>
-    </el-dialog>
+    </t-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { Setting, Plus } from '@element-plus/icons-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { SettingIcon, AddIcon } from 'tdesign-icons-vue-next'
 import { get, post, put, del, patch } from '@/api/client'
 import type { RuleResponse, RuleRequest, PageDTO } from '@/api/types'
 import { useI18n } from 'vue-i18n'
-import type { FormInstance, FormRules } from 'element-plus'
+import type { FormInstanceFunctions, FormRules } from 'tdesign-vue-next'
 import { formatDateTime } from '@/composables/useFormat'
 import { actionTag } from '@/composables/useSeverity'
 import SkeletonTable from '@/components/skeleton/SkeletonTable.vue'
@@ -163,7 +145,7 @@ const page = reactive<PageDTO<RuleResponse>>({ content: [], page: 1, size: 10, t
 
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
-const formRef = ref<FormInstance>()
+const formRef = ref<FormInstanceFunctions>()
 const form = reactive<RuleRequest>({
   name: '', description: '', ruleType: '', target: '', action: '', priority: 0, enabled: true, ruleConfig: '',
 })
@@ -175,6 +157,17 @@ const formRules: FormRules = {
 }
 
 const filters = reactive({ ruleType: '', search: '', enabled: undefined as boolean | undefined })
+
+const ruleColumns = computed(() => [
+  { colKey: 'name', title: t('rules.name'), minWidth: 160 },
+  { colKey: 'ruleType', title: t('rules.type'), width: 120 },
+  { colKey: 'target', title: t('rules.target'), width: 160 },
+  { colKey: 'action', title: t('rules.action'), width: 110 },
+  { colKey: 'priority', title: t('rules.priority'), width: 90, align: 'center' as const },
+  { colKey: 'enabled', title: t('common.status'), width: 100 },
+  { colKey: 'createdAt', title: t('rules.created'), width: 170 },
+  { colKey: 'actions', title: t('common.actions'), width: 180, fixed: 'right' as const },
+])
 
 async function fetchList(p: number) {
   loading.value = true
@@ -189,9 +182,7 @@ async function fetchList(p: number) {
       rules.value = res.data.content
       pageNum.value = p
     }
-  } finally {
-    loading.value = false
-  }
+  } finally { loading.value = false }
 }
 
 async function toggleEnabled(row: RuleResponse, val: boolean) {
@@ -228,8 +219,8 @@ function openEdit(row: RuleResponse) {
 }
 
 async function handleSave() {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
+  const result = await formRef.value?.validate()
+  if (result !== true) return
   saving.value = true
   try {
     if (editingId.value) {
@@ -261,5 +252,5 @@ onMounted(() => fetchList(1))
 
 .header-icon-primary { color: var(--color-primary); background: var(--color-primary-light); }
 
-.card-header-icon-primary { color: var(--color-primary); font-size: 18px; }
+.card-header-icon-primary { color: var(--color-primary); }
 </style>

@@ -2,30 +2,31 @@
   <div class="topology-page">
     <div class="page-header">
       <div class="header-title">
-        <el-icon class="header-icon header-icon-success"><Share /></el-icon>
+        <span class="header-icon header-icon-success"><ShareIcon size="22px" /></span>
         <h2>{{ $t('topology.title') }}</h2>
       </div>
-      <el-button type="primary" :icon="Refresh" :loading="loading" @click="fetchAll">
+      <t-button theme="primary" :loading="loading" @click="fetchAll">
+        <template #icon><RefreshIcon /></template>
         {{ $t('common.refresh') }}
-      </el-button>
+      </t-button>
     </div>
 
-    <el-card shadow="hover" class="section-card">
+    <t-card :bordered="false" class="section-card">
       <template #header>
         <div class="card-header">
-          <span><el-icon class="card-header-icon-success"><Cpu /></el-icon> {{ $t('topology.connectedDevices') }}</span>
+          <span><CpuIcon size="18px" class="card-header-icon-success" /> {{ $t('topology.connectedDevices') }}</span>
           <span class="header-count">{{ $t('common.total') }}: {{ devices.length }}</span>
         </div>
       </template>
       <template v-if="loading && !devices.length">
-        <el-row :gutter="16">
-          <el-col v-for="n in 4" :key="n" :span="6"><SkeletonCard /></el-col>
-        </el-row>
+        <t-row :gutter="16">
+          <t-col v-for="n in 4" :key="n" :span="3"><SkeletonCard /></t-col>
+        </t-row>
       </template>
       <template v-else-if="devices.length">
-        <el-row :gutter="16">
-          <el-col v-for="d in devices" :key="d.deviceId" :span="6">
-            <el-card shadow="hover" class="device-card" @click="selectDevice(d.deviceId)">
+        <t-row :gutter="16">
+          <t-col v-for="d in devices" :key="d.deviceId" :span="3">
+            <t-card :bordered="false" class="device-card" @click="selectDevice(d.deviceId)">
               <div class="device-head">
                 <div class="device-type-tag" :class="deviceStatusClass(d.status)">{{ $t(`deviceStatus.${d.status}`, d.status.toUpperCase()) }}</div>
               </div>
@@ -36,115 +37,90 @@
                 <div v-if="d.macAddress" class="info-row"><span class="lbl">{{ $t('topology.macAddress') }}</span><span class="tech-font mono">{{ d.macAddress }}</span></div>
                 <div v-if="d.port" class="info-row"><span class="lbl">{{ $t('topology.port') }}</span><span class="tech-font mono">{{ d.port }}</span></div>
               </div>
-            </el-card>
-          </el-col>
-        </el-row>
+            </t-card>
+          </t-col>
+        </t-row>
       </template>
-      <el-empty v-else :description="$t('topology.noDevices')" :image-size="80" />
-    </el-card>
+      <t-empty v-else :description="$t('topology.noDevices')" />
+    </t-card>
 
     <SkeletonTable v-if="loading && !events.length" :rows="5" :cols="6" />
-    <el-card v-else shadow="hover" class="section-card">
+    <t-card v-else :bordered="false" class="section-card">
       <template #header>
         <div class="card-header">
-          <span><el-icon class="card-header-icon-success"><List /></el-icon> {{ $t('topology.topologyEvents') }}</span>
+          <span><ViewListIcon size="18px" class="card-header-icon-success" /> {{ $t('topology.topologyEvents') }}</span>
           <span class="header-count">{{ $t('common.total') }}: {{ page.totalElements }}</span>
         </div>
       </template>
       <template v-if="events.length">
-        <el-table v-loading="loading" :data="events" stripe size="default" class="tech-table">
-          <el-table-column :label="$t('topology.eventType')" width="140">
-            <template #default="{ row }">
-              <el-tag :type="eventTag(row.eventType)" size="small" effect="dark">{{ $t(`topoEvent.${row.eventType}`, row.eventType.toUpperCase()) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('topology.deviceName')" min-width="140">
-            <template #default="{ row }"><span class="tech-font">{{ row.deviceName }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('topology.deviceType')" width="100">
-            <template #default="{ row }"><span class="tech-font mono">{{ row.deviceType }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('topology.ipAddress')" width="160">
-            <template #default="{ row }">
-              <span v-if="row.ipAddress" class="tech-font mono">{{ row.ipAddress }}</span>
-              <span v-else class="tech-font">{{ $t('common.dash') }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('topology.macAddress')" width="160">
-            <template #default="{ row }">
-              <span v-if="row.macAddress" class="tech-font mono">{{ row.macAddress }}</span>
-              <span v-else class="tech-font">{{ $t('common.dash') }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('topology.port')" width="80">
-            <template #default="{ row }"><span class="tech-font mono">{{ row.port ?? $t('common.dash') }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('common.status')" width="110">
-            <template #default="{ row }">
-              <el-tag :type="topoStatusTag(row.status)" effect="plain">{{ $t(`deviceStatus.${row.status}`, row.status.toUpperCase()) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('topology.occurredAt')" width="180">
-            <template #default="{ row }"><span class="tech-font">{{ formatDateTime(row.occurredAt) }}</span></template>
-          </el-table-column>
-        </el-table>
+        <t-table :loading="loading" :data="events" :columns="eventColumns" stripe size="medium" class="tech-table" row-key="id">
+          <template #eventType="{ row }">
+            <t-tag :theme="eventTag(row.eventType)" size="small" variant="dark">{{ $t(`topoEvent.${row.eventType}`, row.eventType.toUpperCase()) }}</t-tag>
+          </template>
+          <template #deviceName="{ row }"><span class="tech-font">{{ row.deviceName }}</span></template>
+          <template #deviceType="{ row }"><span class="tech-font mono">{{ row.deviceType }}</span></template>
+          <template #ipAddress="{ row }">
+            <span v-if="row.ipAddress" class="tech-font mono">{{ row.ipAddress }}</span>
+            <span v-else class="tech-font">{{ $t('common.dash') }}</span>
+          </template>
+          <template #macAddress="{ row }">
+            <span v-if="row.macAddress" class="tech-font mono">{{ row.macAddress }}</span>
+            <span v-else class="tech-font">{{ $t('common.dash') }}</span>
+          </template>
+          <template #port="{ row }"><span class="tech-font mono">{{ row.port ?? $t('common.dash') }}</span></template>
+          <template #status="{ row }">
+            <t-tag :theme="topoStatusTag(row.status)" variant="light">{{ $t(`deviceStatus.${row.status}`, row.status.toUpperCase()) }}</t-tag>
+          </template>
+          <template #occurredAt="{ row }"><span class="tech-font">{{ formatDateTime(row.occurredAt) }}</span></template>
+        </t-table>
         <div class="pagination-wrap">
-          <el-pagination
-            v-model:current-page="pageNum"
+          <t-pagination
+            v-model:current="pageNum"
             v-model:page-size="pageSize"
             :total="page.totalElements"
-            :page-sizes="[10, 20, 50]"
-            layout="total, sizes, prev, pager, next"
-            @size-change="fetchEvents(1)"
+            :page-size-options="[10, 20, 50]"
+            show-page-number
+            show-page-size
+            @page-size-change="fetchEvents(1)"
             @current-change="fetchEvents"
           />
         </div>
       </template>
-      <el-empty v-else :description="$t('topology.noEvents')" :image-size="100" />
-    </el-card>
+      <t-empty v-else :description="$t('topology.noEvents')" />
+    </t-card>
 
-    <el-dialog v-model="historyVisible" :title="$t('topology.deviceHistory', { id: historyId })" width="800px" destroy-on-close>
+    <t-dialog v-model:visible="historyVisible" :header="$t('topology.deviceHistory', { id: historyId })" width="800px" destroy-on-close>
       <template v-if="deviceHistory.length">
-        <el-table :data="deviceHistory" stripe size="small" max-height="400">
-          <el-table-column :label="$t('topology.eventType')" width="120">
-            <template #default="{ row }">
-              <el-tag :type="eventTag(row.eventType)" size="small" effect="dark">{{ $t(`topoEvent.${row.eventType}`, row.eventType.toUpperCase()) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('common.status')" width="100">
-            <template #default="{ row }">
-              <el-tag :type="topoStatusTag(row.status)" effect="plain">{{ $t(`deviceStatus.${row.status}`, row.status.toUpperCase()) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('topology.ipAddress')" width="150">
-            <template #default="{ row }"><span class="tech-font mono">{{ row.ipAddress ?? $t('common.dash') }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('topology.macAddress')" width="160">
-            <template #default="{ row }"><span class="tech-font mono">{{ row.macAddress ?? $t('common.dash') }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('topology.port')" width="80">
-            <template #default="{ row }"><span class="tech-font mono">{{ row.port ?? $t('common.dash') }}</span></template>
-          </el-table-column>
-          <el-table-column :label="$t('topology.occurredAt')" width="170">
-            <template #default="{ row }"><span class="tech-font">{{ formatDateTime(row.occurredAt) }}</span></template>
-          </el-table-column>
-        </el-table>
+        <t-table :data="deviceHistory" :columns="historyColumns" size="small" max-height="400" row-key="id">
+          <template #eventType="{ row }">
+            <t-tag :theme="eventTag(row.eventType)" size="small" variant="dark">{{ $t(`topoEvent.${row.eventType}`, row.eventType.toUpperCase()) }}</t-tag>
+          </template>
+          <template #status="{ row }">
+            <t-tag :theme="topoStatusTag(row.status)" variant="light">{{ $t(`deviceStatus.${row.status}`, row.status.toUpperCase()) }}</t-tag>
+          </template>
+          <template #ipAddress="{ row }"><span class="tech-font mono">{{ row.ipAddress ?? $t('common.dash') }}</span></template>
+          <template #macAddress="{ row }"><span class="tech-font mono">{{ row.macAddress ?? $t('common.dash') }}</span></template>
+          <template #port="{ row }"><span class="tech-font mono">{{ row.port ?? $t('common.dash') }}</span></template>
+          <template #occurredAt="{ row }"><span class="tech-font">{{ formatDateTime(row.occurredAt) }}</span></template>
+        </t-table>
       </template>
-      <el-empty v-else :description="$t('topology.noHistory')" :image-size="80" />
-    </el-dialog>
+      <t-empty v-else :description="$t('topology.noHistory')" />
+    </t-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { Share, Refresh, Cpu, List } from '@element-plus/icons-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { ShareIcon, RefreshIcon, CpuIcon, ViewListIcon } from 'tdesign-icons-vue-next'
 import { get } from '@/api/client'
 import type { TopologyEventResponse, PageDTO } from '@/api/types'
+import { useI18n } from 'vue-i18n'
 import { formatDateTime } from '@/composables/useFormat'
 import { eventTag, topoStatusTag, deviceStatusClass } from '@/composables/useSeverity'
 import SkeletonCard from '@/components/skeleton/SkeletonCard.vue'
 import SkeletonTable from '@/components/skeleton/SkeletonTable.vue'
 
+const { t } = useI18n()
 const loading = ref(false)
 const devices = ref<TopologyEventResponse[]>([])
 const events = ref<TopologyEventResponse[]>([])
@@ -155,6 +131,26 @@ const page = reactive<PageDTO<TopologyEventResponse>>({ content: [], page: 1, si
 const historyVisible = ref(false)
 const historyId = ref('')
 const deviceHistory = ref<TopologyEventResponse[]>([])
+
+const eventColumns = computed(() => [
+  { colKey: 'eventType', title: t('topology.eventType'), width: 140 },
+  { colKey: 'deviceName', title: t('topology.deviceName'), minWidth: 140 },
+  { colKey: 'deviceType', title: t('topology.deviceType'), width: 100 },
+  { colKey: 'ipAddress', title: t('topology.ipAddress'), width: 160 },
+  { colKey: 'macAddress', title: t('topology.macAddress'), width: 160 },
+  { colKey: 'port', title: t('topology.port'), width: 80 },
+  { colKey: 'status', title: t('common.status'), width: 110 },
+  { colKey: 'occurredAt', title: t('topology.occurredAt'), width: 180 },
+])
+
+const historyColumns = computed(() => [
+  { colKey: 'eventType', title: t('topology.eventType'), width: 120 },
+  { colKey: 'status', title: t('common.status'), width: 100 },
+  { colKey: 'ipAddress', title: t('topology.ipAddress'), width: 150 },
+  { colKey: 'macAddress', title: t('topology.macAddress'), width: 160 },
+  { colKey: 'port', title: t('topology.port'), width: 80 },
+  { colKey: 'occurredAt', title: t('topology.occurredAt'), width: 170 },
+])
 
 async function fetchDevices() {
   try {
@@ -184,10 +180,7 @@ async function selectDevice(deviceId: string) {
   } catch { deviceHistory.value = [] }
 }
 
-function fetchAll() {
-  fetchDevices()
-  fetchEvents(pageNum.value)
-}
+function fetchAll() { fetchDevices(); fetchEvents(pageNum.value) }
 
 onMounted(fetchAll)
 </script>
@@ -197,5 +190,5 @@ onMounted(fetchAll)
 
 .header-icon-success { color: var(--color-success); background: var(--color-success-light); }
 
-.card-header-icon-success { color: var(--color-success); font-size: 18px; }
+.card-header-icon-success { color: var(--color-success); }
 </style>

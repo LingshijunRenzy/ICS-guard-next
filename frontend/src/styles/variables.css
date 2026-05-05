@@ -1,64 +1,64 @@
 :root {
-  /* Brand */
-  --color-primary: #409eff;
-  --color-primary-light: rgba(64, 158, 255, 0.1);
-  --color-primary-dark: #337ecc;
+  /* Brand — mapped to TDesign tokens */
+  --color-primary: var(--td-brand-color, #0052d9);
+  --color-primary-light: var(--td-brand-color-1, rgba(0, 82, 217, 0.1));
+  --color-primary-dark: var(--td-brand-color-7, #0034b5);
 
-  /* Severity / Semantic */
-  --color-danger: #f56c6c;
-  --color-danger-light: rgba(245, 108, 108, 0.1);
-  --color-warning: #e6a23c;
-  --color-warning-light: rgba(230, 162, 60, 0.1);
-  --color-success: #67c23a;
-  --color-success-light: rgba(103, 194, 58, 0.1);
-  --color-info: #909399;
-  --color-info-light: rgba(144, 147, 153, 0.1);
+  /* Severity / Semantic — mapped to TDesign tokens */
+  --color-danger: var(--td-error-color, #e34d59);
+  --color-danger-light: var(--td-error-color-1, rgba(227, 77, 89, 0.1));
+  --color-warning: var(--td-warning-color, #ed7b2f);
+  --color-warning-light: var(--td-warning-color-1, rgba(237, 123, 47, 0.1));
+  --color-success: var(--td-success-color, #00a870);
+  --color-success-light: var(--td-success-color-1, rgba(0, 168, 112, 0.1));
+  --color-info: var(--td-gray-color-7, #909399);
+  --color-info-light: var(--td-gray-color-1, rgba(144, 147, 153, 0.1));
 
   /* Text */
-  --text-primary: #303133;
-  --text-regular: #606266;
-  --text-secondary: #8c939d;
-  --text-placeholder: #c0c4cc;
-  --text-heading: #2c3e50;
+  --text-primary: var(--td-text-color-primary, #000000e6);
+  --text-regular: var(--td-text-color-secondary, #00000099);
+  --text-secondary: var(--td-text-color-placeholder, #00000066);
+  --text-placeholder: var(--td-text-color-disabled, #00000042);
+  --text-heading: var(--td-text-color-primary, #000000e6);
 
   /* Background */
-  --bg-page: #f0f2f5;
-  --bg-card: #ffffff;
-  --bg-login: #f5f7fa;
+  --bg-page: var(--td-bg-color-page, #f3f3f3);
+  --bg-card: var(--td-bg-color-container, #ffffff);
+  --bg-login: var(--td-bg-color-page, #f3f3f3);
   --bg-sidebar-from: #051328;
   --bg-sidebar-to: #0b1a37;
 
   /* Border / Divider */
-  --border-light: #f0f0f0;
+  --border-light: var(--td-component-border, #dcdcdc);
   --border-ghost: rgba(255, 255, 255, 0.05);
 
-  /* Radius */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
-  --radius-2xl: 12px;
-  --radius-icon: 14px;
+  /* Radius — mapped to TDesign tokens */
+  --radius-sm: var(--td-radius-small, 3px);
+  --radius-md: var(--td-radius-default, 6px);
+  --radius-lg: var(--td-radius-medium, 9px);
+  --radius-xl: var(--td-radius-large, 12px);
+  --radius-2xl: var(--td-radius-extraLarge, 12px);
+  --radius-icon: var(--td-radius-round, 14px);
 
   /* Shadow */
-  --shadow-card: 0 1px 4px rgba(0, 21, 41, 0.08);
+  --shadow-card: var(--td-shadow-1, 0 1px 4px rgba(0, 21, 41, 0.08));
   --shadow-sidebar: 2px 0 8px 0 rgba(0, 0, 0, 0.15);
-  --shadow-button: 0 4px 12px rgba(64, 158, 255, 0.3);
-  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-button: 0 4px 12px rgba(0, 82, 217, 0.3);
+  --shadow-card-hover: var(--td-shadow-2, 0 4px 16px rgba(0, 0, 0, 0.1));
 
   /* Spacing */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 24px;
-  --space-2xl: 32px;
+  --space-xs: var(--td-comp-paddingLR-xxs, 4px);
+  --space-sm: var(--td-comp-paddingLR-xs, 8px);
+  --space-md: var(--td-comp-paddingLR-s, 12px);
+  --space-lg: var(--td-comp-paddingLR-m, 16px);
+  --space-xl: var(--td-comp-paddingLR-l, 24px);
+  --space-2xl: var(--td-comp-paddingLR-xl, 32px);
 
   /* Typography */
   --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  --font-sans: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+  --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
   /* Transitions */
-  --transition-fast: 0.3s;
+  --transition-fast: var(--td-transition, 0.2s);
   --transition-medium: 0.5s;
 }

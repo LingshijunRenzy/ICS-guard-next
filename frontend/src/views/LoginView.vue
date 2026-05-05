@@ -1,25 +1,25 @@
 <template>
-  <el-container class="login-container">
-    <el-card class="login-card">
+  <t-layout class="login-container">
+    <t-card class="login-card" :bordered="false">
       <template #header>
         <h2 class="login-title">{{ $t('login.title') }}</h2>
       </template>
-      <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="handleLogin">
-        <el-form-item :label="$t('login.username')" prop="username">
-          <el-input v-model="form.username" :placeholder="$t('login.usernamePlaceholder')" />
-        </el-form-item>
-        <el-form-item :label="$t('login.password')" prop="password">
-          <el-input v-model="form.password" type="password" :placeholder="$t('login.passwordPlaceholder')" show-password />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" native-type="submit" :loading="auth.loading" class="login-btn">
+      <t-form ref="formRef" :data="form" :rules="rules" label-align="top">
+        <t-form-item :label="$t('login.username')" name="username">
+          <t-input v-model="form.username" :placeholder="$t('login.usernamePlaceholder')" @enter="handleLogin" />
+        </t-form-item>
+        <t-form-item :label="$t('login.password')" name="password">
+          <t-input v-model="form.password" type="password" :placeholder="$t('login.passwordPlaceholder')" @enter="handleLogin" />
+        </t-form-item>
+        <t-form-item>
+          <t-button theme="primary" :loading="auth.loading" block @click="handleLogin">
             {{ $t('login.loginBtn') }}
-          </el-button>
-        </el-form-item>
+          </t-button>
+        </t-form-item>
         <p v-if="error" class="error-msg">{{ error }}</p>
-      </el-form>
-    </el-card>
-  </el-container>
+      </t-form>
+    </t-card>
+  </t-layout>
 </template>
 
 <script setup lang="ts">
@@ -27,12 +27,12 @@ import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useI18n } from 'vue-i18n'
-import type { FormInstance, FormRules } from 'element-plus'
+import type { FormInstanceFunctions, FormRules } from 'tdesign-vue-next'
 
 const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
-const formRef = ref<FormInstance>()
+const formRef = ref<FormInstanceFunctions>()
 const error = ref('')
 
 const form = reactive({ username: '', password: '' })
@@ -43,8 +43,8 @@ const rules: FormRules = {
 }
 
 async function handleLogin() {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
+  const result = await formRef.value?.validate()
+  if (result !== true) return
   error.value = ''
   const res = await auth.login({ username: form.username, password: form.password })
   if (res.code === 200) {
@@ -72,10 +72,6 @@ async function handleLogin() {
   text-align: center;
   margin: 0;
   letter-spacing: 2px;
-}
-
-.login-btn {
-  width: 100%;
 }
 
 .error-msg {

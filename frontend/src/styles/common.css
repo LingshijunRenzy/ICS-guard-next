@@ -16,16 +16,21 @@
 
 .header-title h2 {
   margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-heading);
-  letter-spacing: 0.5px;
+  font-size: 20px;
+    font-weight: 500;
+    color: var(--td-text-color-primary, rgba(0, 0, 0, 0.9));
 }
 
 .header-icon {
-  font-size: 28px;
-  padding: var(--space-sm);
-  border-radius: var(--radius-lg);
+  display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    border-radius: var(--td-radius-default);
+    background: var(--td-brand-color-light);
+    color: var(--td-brand-color);
 }
 
 /* ===== Stat Cards ===== */
@@ -34,8 +39,6 @@
 }
 
 .stat-card {
-  border-radius: var(--radius-2xl);
-  border: none;
   transition: transform var(--transition-fast);
 }
 
@@ -53,7 +56,7 @@
 .stat-icon-wrapper {
   width: 56px;
   height: 56px;
-  border-radius: var(--radius-icon);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -70,16 +73,16 @@
 }
 
 .stat-title {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin-bottom: var(--space-xs);
-  font-weight: 500;
+  font: var(--td-font-body-medium);
+    color: var(--td-text-color-secondary);
+    margin-bottom: var(--space-sm);
 }
 
 .stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1.2;
+  font-size: var(--td-font-size-headline-medium, 28px);
+    color: var(--td-text-color-primary);
+    line-height: var(--td-line-height-headline-medium, 36px);
+    font-weight: 500;
 }
 
 .stat-suffix {
@@ -162,8 +165,6 @@
 }
 
 .data-card {
-  border-radius: var(--radius-2xl);
-  border: none;
 }
 
 .list-container {
@@ -173,19 +174,13 @@
 
 /* ===== Filter & Table Cards ===== */
 .filter-card {
-  border-radius: var(--radius-2xl);
-  border: none;
   margin-bottom: var(--space-xl);
 }
 
 .table-card {
-  border-radius: var(--radius-2xl);
-  border: none;
 }
 
 .section-card {
-  border-radius: var(--radius-2xl);
-  border: none;
   margin-bottom: var(--space-xl);
 }
 
@@ -212,7 +207,7 @@
 
 /* ===== Table ===== */
 .tech-table {
-  border-radius: var(--radius-lg);
+  border-radius: var(--td-radius-default);
   overflow: hidden;
 }
 
@@ -367,13 +362,9 @@
 }
 
 .action-card {
-  border-radius: var(--radius-2xl);
-  border: none;
 }
 
 .result-card {
-  border-radius: var(--radius-2xl);
-  border: none;
 }
 
 .result-body {
@@ -471,8 +462,6 @@
 
 /* ===== Device cards (Topology) ===== */
 .device-card {
-  border-radius: var(--radius-xl);
-  border: none;
   cursor: pointer;
   margin-bottom: var(--space-lg);
   transition: all var(--transition-fast);

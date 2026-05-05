@@ -2,117 +2,120 @@
   <div class="sdn-page">
     <div class="page-header">
       <div class="header-title">
-        <el-icon class="header-icon header-icon-primary"><Monitor /></el-icon>
+        <span class="header-icon header-icon-primary"><DesktopIcon size="22px" /></span>
         <h2>{{ $t('sdn.title') }}</h2>
       </div>
-      <el-button type="primary" :icon="Refresh" :loading="loading" @click="fetchHealth">
+      <t-button theme="primary" :loading="loading" @click="fetchHealth">
+        <template #icon><RefreshIcon /></template>
         {{ $t('common.refreshStatus') }}
-      </el-button>
+      </t-button>
     </div>
 
-    <el-row :gutter="24" class="stat-row">
+    <t-row :gutter="[16, 16]" class="stat-row">
       <template v-if="loading">
-        <el-col v-for="n in 3" :key="'sk' + n" :span="8"><SkeletonCard /></el-col>
+        <t-col v-for="n in 3" :key="'sk' + n" :span="4"><SkeletonCard /></t-col>
       </template>
       <template v-else>
-        <el-col :span="8">
-          <el-card shadow="hover" class="stat-card">
+        <t-col :span="4">
+          <t-card :bordered="false" class="stat-card">
             <div class="stat-content">
               <div class="stat-icon-wrapper" :class="health.status === 'healthy' ? 'success-bg' : 'danger-bg'">
-                <el-icon><CircleCheckFilled v-if="health.status === 'healthy'" /><CircleCloseFilled v-else /></el-icon>
+                <CheckCircleFilledIcon v-if="health.status === 'healthy'" size="28px" />
+                <CloseCircleFilledIcon v-else size="28px" />
               </div>
               <div class="stat-info">
                 <div class="stat-title">{{ $t('sdn.controllerStatus') }}</div>
                 <div class="stat-value" :class="health.status === 'healthy' ? 'success-text' : 'danger-text'">{{ health.status?.toUpperCase() ?? $t('common.unknown') }}</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="8">
-          <el-card shadow="hover" class="stat-card">
+          </t-card>
+        </t-col>
+        <t-col :span="4">
+          <t-card :bordered="false" class="stat-card">
             <div class="stat-content">
-              <div class="stat-icon-wrapper primary-bg"><el-icon><Connection /></el-icon></div>
+              <div class="stat-icon-wrapper primary-bg"><LinkIcon size="28px" /></div>
               <div class="stat-info">
                 <div class="stat-title">{{ $t('sdn.connectedSwitches') }}</div>
                 <div class="stat-value primary-text">{{ health.details?.switches ?? 0 }}</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="8">
-          <el-card shadow="hover" class="stat-card">
+          </t-card>
+        </t-col>
+        <t-col :span="4">
+          <t-card :bordered="false" class="stat-card">
             <div class="stat-content">
-              <div class="stat-icon-wrapper warning-bg"><el-icon><Key /></el-icon></div>
+              <div class="stat-icon-wrapper warning-bg"><SecuredIcon size="28px" /></div>
               <div class="stat-info">
                 <div class="stat-title">{{ $t('sdn.activeFlows') }}</div>
                 <div class="stat-value warning-text">{{ health.details?.activeFlows ?? 0 }}</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
+          </t-card>
+        </t-col>
       </template>
-    </el-row>
+    </t-row>
 
-    <el-row :gutter="24" class="action-row">
-      <el-col :span="12">
-        <el-card shadow="hover" class="action-card">
+    <t-row :gutter="[16, 16]" class="action-row">
+      <t-col :span="12">
+        <t-card :bordered="false" class="action-card">
           <template #header>
             <div class="card-header">
-              <span><el-icon class="card-header-icon-danger"><Lock /></el-icon> {{ $t('sdn.blockFlow') }}</span>
+              <span><LockOnIcon size="18px" class="card-header-icon-danger" /> {{ $t('sdn.blockFlow') }}</span>
             </div>
           </template>
-          <el-form :model="blockForm" label-width="120px" size="default">
-            <el-form-item :label="$t('sdn.sourceIp')">
-              <el-input v-model="blockForm.srcIp" placeholder="192.168.1.100" class="mono" />
-            </el-form-item>
-            <el-form-item :label="$t('sdn.destIp')">
-              <el-input v-model="blockForm.dstIp" placeholder="192.168.2.200" class="mono" />
-            </el-form-item>
-            <el-form-item :label="$t('sdn.protocol')">
-              <el-select v-model="blockForm.protocol" style="width:100%">
-                <el-option :label="$t('protocol.tcp')" value="tcp" />
-                <el-option :label="$t('protocol.udp')" value="udp" />
-                <el-option :label="$t('protocol.modbus')" value="modbus" />
-                <el-option :label="$t('protocol.dnp3')" value="dnp3" />
-                <el-option :label="$t('protocol.bacnet')" value="bacnet" />
-                <el-option :label="$t('protocol.s7comm')" value="s7comm" />
-                <el-option :label="$t('protocol.ethernetIp')" value="ethernet_ip" />
-              </el-select>
-            </el-form-item>
-            <el-form-item :label="$t('sdn.reason')">
-              <el-input v-model="blockForm.reason" type="textarea" :rows="2" :placeholder="$t('sdn.reasonPlaceholder')" />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="danger" :loading="blocking" @click="handleBlock">{{ $t('sdn.blockBtn') }}</el-button>
-            </el-form-item>
-          </el-form>
-        </el-card>
-      </el-col>
+          <t-form :data="blockForm" label-width="120px">
+            <t-form-item :label="$t('sdn.sourceIp')">
+              <t-input v-model="blockForm.srcIp" placeholder="192.168.1.100" class="mono" />
+            </t-form-item>
+            <t-form-item :label="$t('sdn.destIp')">
+              <t-input v-model="blockForm.dstIp" placeholder="192.168.2.200" class="mono" />
+            </t-form-item>
+            <t-form-item :label="$t('sdn.protocol')">
+              <t-select v-model="blockForm.protocol" style="width:100%">
+                <t-option :label="$t('protocol.tcp')" value="tcp" />
+                <t-option :label="$t('protocol.udp')" value="udp" />
+                <t-option :label="$t('protocol.modbus')" value="modbus" />
+                <t-option :label="$t('protocol.dnp3')" value="dnp3" />
+                <t-option :label="$t('protocol.bacnet')" value="bacnet" />
+                <t-option :label="$t('protocol.s7comm')" value="s7comm" />
+                <t-option :label="$t('protocol.ethernetIp')" value="ethernet_ip" />
+              </t-select>
+            </t-form-item>
+            <t-form-item :label="$t('sdn.reason')">
+              <t-textarea v-model="blockForm.reason" :rows="2" :placeholder="$t('sdn.reasonPlaceholder')" />
+            </t-form-item>
+            <t-form-item>
+              <t-button theme="danger" :loading="blocking" @click="handleBlock">{{ $t('sdn.blockBtn') }}</t-button>
+            </t-form-item>
+          </t-form>
+        </t-card>
+      </t-col>
 
-      <el-col :span="12">
-        <el-card shadow="hover" class="action-card">
+      <t-col :span="12">
+        <t-card :bordered="false" class="action-card">
           <template #header>
             <div class="card-header">
-              <span><el-icon class="card-header-icon-primary"><Upload /></el-icon> {{ $t('sdn.applyRules') }}</span>
+              <span><UploadIcon size="18px" class="card-header-icon-primary" /> {{ $t('sdn.applyRules') }}</span>
             </div>
           </template>
           <div class="rules-apply">
             <p class="desc">{{ $t('sdn.rulesDesc') }}</p>
-            <el-button type="primary" :loading="applying" @click="handleApplyRules">
-              <el-icon><Upload /></el-icon> {{ $t('sdn.applyBtn') }}
-            </el-button>
+            <t-button theme="primary" :loading="applying" @click="handleApplyRules">
+              <template #icon><UploadIcon /></template>
+              {{ $t('sdn.applyBtn') }}
+            </t-button>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </t-card>
+      </t-col>
+    </t-row>
 
-    <el-card v-if="lastOp" shadow="hover" class="result-card">
+    <t-card v-if="lastOp" :bordered="false" class="result-card">
       <template #header>
         <div class="card-header">
-          <span><el-icon class="card-header-icon-success"><List /></el-icon> {{ $t('sdn.lastOperation') }}</span>
-          <el-tag :type="lastOp.status === 'success' ? 'success' : 'danger'" effect="plain">
+          <span><ViewListIcon size="18px" class="card-header-icon-success" /> {{ $t('sdn.lastOperation') }}</span>
+          <t-tag :theme="lastOp.status === 'success' ? 'success' : 'danger'" variant="light">
             {{ lastOp.status?.toUpperCase() }}
-          </el-tag>
+          </t-tag>
         </div>
       </template>
       <div class="result-body">
@@ -127,13 +130,16 @@
           </div>
         </div>
       </div>
-    </el-card>
+    </t-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { Monitor, Refresh, CircleCheckFilled, CircleCloseFilled, Connection, Key, Lock, Upload, List } from '@element-plus/icons-vue'
+import {
+  DesktopIcon, RefreshIcon, CheckCircleFilledIcon, CloseCircleFilledIcon,
+  LinkIcon, SecuredIcon, LockOnIcon, UploadIcon, ViewListIcon,
+} from 'tdesign-icons-vue-next'
 import { get, post } from '@/api/client'
 import type { FlowBlockRequest, SdnOperationResponse } from '@/api/types'
 import SkeletonCard from '@/components/skeleton/SkeletonCard.vue'
@@ -182,7 +188,7 @@ onMounted(fetchHealth)
 
 .header-icon-primary { color: var(--color-primary); background: var(--color-primary-light); }
 
-.card-header-icon-danger { color: var(--color-danger); font-size: 18px; }
-.card-header-icon-primary { color: var(--color-primary); font-size: 18px; }
-.card-header-icon-success { color: var(--color-success); font-size: 18px; }
+.card-header-icon-danger { color: var(--color-danger); }
+.card-header-icon-primary { color: var(--color-primary); }
+.card-header-icon-success { color: var(--color-success); }
 </style>

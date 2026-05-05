@@ -1,5 +1,5 @@
 <template>
-  <el-card shadow="hover" class="skeleton-table-card">
+  <t-card bordered class="skeleton-table-card">
     <div class="skeleton-header">
       <div class="skeleton-line skeleton-line-md skeleton-shimmer" />
       <div class="skeleton-line skeleton-line-sm skeleton-shimmer" />
@@ -9,20 +9,16 @@
         <div v-for="j in cols" :key="j" class="skeleton-cell skeleton-shimmer" />
       </div>
     </div>
-  </el-card>
+  </t-card>
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{ rows?: number; cols?: number }>(), {
-  rows: 5,
-  cols: 6,
-})
+withDefaults(defineProps<{ rows?: number; cols?: number }>(), { rows: 5, cols: 6 })
 </script>
 
 <style scoped>
 .skeleton-table-card {
   border-radius: var(--radius-2xl);
-  border: none;
 }
 
 .skeleton-header {
@@ -59,14 +55,8 @@ withDefaults(defineProps<{ rows?: number; cols?: number }>(), {
   height: 16px;
 }
 
-.skeleton-line-md {
-  width: 30%;
-}
-
-.skeleton-line-sm {
-  width: 15%;
-  height: 13px;
-}
+.skeleton-line-md { width: 30%; }
+.skeleton-line-sm { width: 15%; height: 13px; }
 
 .skeleton-shimmer {
   background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%);
@@ -75,11 +65,7 @@ withDefaults(defineProps<{ rows?: number; cols?: number }>(), {
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 </style>
