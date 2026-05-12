@@ -159,6 +159,7 @@ services:
     build:
       context: ./app-backend
       dockerfile: Dockerfile
+    pull_policy: build
     container_name: ics-app-backend
     hostname: app-backend
     networks:
@@ -186,6 +187,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    pull_policy: build
     container_name: ics-web-ui
     hostname: web-ui
     networks:
